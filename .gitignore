@@ -1,0 +1,30 @@
+# Dependencies
+node_modules/
+.venv/
+venv/
+env/
+__pycache__/
+*.pyc
+
+# Builds & Outputs
+dist/
+dist-ssr/
+build/
+*.egg-info/
+
+# Environment & Secrets
+.env
+.env.*
+!.env.example
+
+# Editor & OS
+.vscode/
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+
+# Archives & Temporary
+*.zip
+*.log
+.pytest_cache/

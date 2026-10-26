@@ -1,0 +1,11 @@
+{
+  "name": "og-ai-safety-compliance-pipeline",
+  "private": true,
+  "description": "O&G — AI Safety & Compliance Readiness Pipeline Monorepo",
+  "scripts": {
+    "dev": "npm --prefix frontend run dev",
+    "build": "npm --prefix frontend run build",
+    "lint": "npm --prefix frontend run lint",
+    "typecheck": "npm --prefix frontend run typecheck"
+  }
+}
