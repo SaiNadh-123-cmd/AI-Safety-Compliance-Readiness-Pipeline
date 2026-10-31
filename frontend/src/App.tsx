@@ -33,8 +33,9 @@ function App() {
   });
 
   useEffect(() => {
-    document.documentElement.classList.remove('theme-deep-blue', 'theme-white');
+    document.documentElement.classList.remove('theme-deep-blue', 'theme-white', 'dark');
     document.documentElement.classList.add(`theme-${theme}`);
+    if (theme === 'deep-blue') document.documentElement.classList.add('dark');
     localStorage.setItem('theme', theme);
   }, [theme]);
 
