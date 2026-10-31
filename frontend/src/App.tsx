@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { ArrowDown, ArrowUpRight, Check, ChevronRight, CircleDot, Crosshair, Download, FileText, Flame, Globe2, LockKeyhole, Menu, MessageSquare, Play, Send, Shield, ShieldCheck, X, Zap } from 'lucide-react';
+import StarfieldGalaxyBackground from './components/StarfieldGalaxyBackground';
 
 type Finding = { id: string; title: string; prompt: string; severity: 'HIGH' | 'MODERATE' | 'LOW'; cause: string; score: number };
 const stages = ['Configure Target', 'Red-Team Probes', 'PII Guardrails', 'Evaluate Results', 'Map Controls', 'Generate Report', 'Remediate & Retest'];
@@ -49,6 +50,7 @@ function App() {
   function exportDossier(kind: string) { const content = kind === 'JSON' ? JSON.stringify({ readiness: 82.4, openFindings: 6, controlCoverage: '47/56' }, null, 2) : '# O&G Executive Readiness Dossier\n\nReadiness index: 82.4 / 100\nControl coverage: 47 / 56'; const link = document.createElement('a'); link.href = URL.createObjectURL(new Blob([content], { type: 'text/plain' })); link.download = `og-dossier.${kind === 'JSON' ? 'json' : 'md'}`; link.click(); }
 
   return <div className="experience">
+    <StarfieldGalaxyBackground />
     <canvas id="particle-canvas" />
     <div className="mesh-glow mesh-blue" /><div className="mesh-glow mesh-gold" /><div className="noise" />
     <div className="ticker"><div className="ticker-track">⚡ O&amp;G AI SAFETY &amp; COMPLIANCE PIPELINE <b>•</b> AUTHORIZED SANDBOX ENVIRONMENT <b>•</b> ZERO REAL PII USED <b>•</b> PROMPTFOO &amp; GISKARD RED-TEAM ENGINE <b>•</b> MICROSOFT PRESIDIO TWO-SIDED GUARDRAILS <b>•</b> NIST AI RMF &amp; EU AI ACT MAPPED <b>•</b> O&amp;G AI SAFETY &amp; COMPLIANCE PIPELINE <b>•</b> AUTHORIZED SANDBOX ENVIRONMENT <b>•</b></div></div>
