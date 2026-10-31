@@ -114,8 +114,10 @@ npm install
 npm run dev
 ```
 
-Visit [http://localhost:5173](http://localhost:5173) in your browser.
+Visit [LIVE]((https://ai-complence.netlify.app/)) in your browser.
+“The live site is an interactive demonstration of the AI Safety & Compliance pipeline using pre-computed sandbox results.
 
+The complete, reproducible red-teaming suite (Promptfoo + Ollama) is included in the repository so any team member can run real adversarial tests locally against an authorized model.”
 #### Frontend Scripts:
 * `npm run dev` — Start Vite local dev server with HMR.
 * `npm run build` — Compile production-ready bundle.
