@@ -12,9 +12,18 @@ interface Star {
   color: string;
 }
 
+const STAR_COLORS = [
+  '#FFFFFF',
+  '#FFFFFF',
+  '#FFFFFF',
+  '#FFFFFF',
+  '#00E5FF',
+  '#00E5FF',
+  '#FFEE55',
+];
+
 function pickColor(): string {
-  const palette = ['#FFFFFF', '#FFFFFF', '#FFFFFF', '#FFFFFF', '#B5B5B5', '#929292'];
-  return palette[Math.floor(Math.random() * palette.length)];
+  return STAR_COLORS[Math.floor(Math.random() * STAR_COLORS.length)];
 }
 
 function makeStar(spawnAtBottom = false): Star {
@@ -23,20 +32,16 @@ function makeStar(spawnAtBottom = false): Star {
     x: Math.random(),
     y: spawnAtBottom ? 1 + Math.random() * 0.12 : Math.random(),
     z,
-    size: 0.5 + z * 2.0,
+    size: 0.5 + z * 2.6,
     speed: (0.018 + z * 0.095) * (0.55 + Math.random() * 0.9),
-    alpha: 0.2 + z * 0.5,
+    alpha: 0.25 + z * 0.7,
     twinklePhase: Math.random() * Math.PI * 2,
     twinkleSpeed: 0.4 + Math.random() * 1.6,
     color: pickColor(),
   };
 }
 
-interface StarfieldProps {
-  theme?: 'dark' | 'light';
-}
-
-export function StarfieldGalaxyBackground({ theme = 'dark' }: StarfieldProps) {
+export function StarfieldGalaxyBackground() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
@@ -51,7 +56,7 @@ export function StarfieldGalaxyBackground({ theme = 'dark' }: StarfieldProps) {
 
     const STAR_COUNT = 180;
     const stars: Star[] = [];
-    for (let i = 0; i < STAR_COUNT; i++) stars.push(makeStar(false));
+    for (let i = 0; i < STAR_COUNT; i++) stars.push(makeStar());
 
     const targetMouse = { x: 0, y: 0 };
     const mouse = { x: 0, y: 0 };
@@ -118,13 +123,10 @@ export function StarfieldGalaxyBackground({ theme = 'dark' }: StarfieldProps) {
       const gx = glow.x * width;
       const gy = glow.y * height;
       const glowRadius = Math.max(width, height) * 0.42;
-      const glowColor = theme === 'light' ? '255, 255, 255' : '255, 255, 255';
-      const glowOpacity1 = 0.08;
-      const glowOpacity2 = 0.03;
       const grad = ctx.createRadialGradient(gx, gy, 0, gx, gy, glowRadius);
-      grad.addColorStop(0, `rgba(${glowColor}, ${glowOpacity1})`);
-      grad.addColorStop(0.35, `rgba(${glowColor}, ${glowOpacity2})`);
-      grad.addColorStop(1, `rgba(${glowColor}, 0)`);
+      grad.addColorStop(0, 'rgba(0, 229, 255, 0.13)');
+      grad.addColorStop(0.35, 'rgba(0, 229, 255, 0.05)');
+      grad.addColorStop(1, 'rgba(0, 229, 255, 0)');
       ctx.fillStyle = grad;
       ctx.fillRect(0, 0, width, height);
 
@@ -188,9 +190,7 @@ export function StarfieldGalaxyBackground({ theme = 'dark' }: StarfieldProps) {
       window.removeEventListener('resize', resize);
       document.removeEventListener('visibilitychange', onVisibility);
     };
-  }, [theme]);
-
-  if (theme === 'light') return null;
+  }, []);
 
   return (
     <div className="fixed inset-0 pointer-events-none z-0" aria-hidden="true">
