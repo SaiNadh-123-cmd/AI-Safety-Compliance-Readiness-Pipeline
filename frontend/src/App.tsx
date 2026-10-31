@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { ArrowDown, ArrowUpRight, Check, ChevronRight, CircleDot, Crosshair, Download, FileText, Flame, Globe2, LockKeyhole, Menu, MessageSquare, Play, Send, Shield, ShieldCheck, X, Zap } from 'lucide-react';
+import { ArrowDown, ArrowUpRight, Check, ChevronRight, CircleDot, Crosshair, Download, FileText, Flame, Globe2, LockKeyhole, Menu, MessageSquare, Play, Send, Shield, ShieldCheck, Sun, Moon, X, Zap } from 'lucide-react';
 import StarfieldGalaxyBackground from './components/StarfieldGalaxyBackground';
 
 type Finding = { id: string; title: string; prompt: string; severity: 'HIGH' | 'MODERATE' | 'LOW'; cause: string; score: number };
@@ -27,6 +27,18 @@ function App() {
   const [toggles, setToggles] = useState({ input: true, output: true, raw: false });
   const [activeCompliance, setActiveCompliance] = useState('GOVERN');
   const [dossier, setDossier] = useState(false);
+  const [theme, setTheme] = useState<'deep-blue' | 'white'>(() => {
+    if (typeof window === 'undefined') return 'deep-blue';
+    return (localStorage.getItem('theme') as 'deep-blue' | 'white') || 'deep-blue';
+  });
+
+  useEffect(() => {
+    document.documentElement.classList.remove('theme-deep-blue', 'theme-white');
+    document.documentElement.classList.add(`theme-${theme}`);
+    localStorage.setItem('theme', theme);
+  }, [theme]);
+
+  function toggleTheme() { setTheme((t) => (t === 'deep-blue' ? 'white' : 'deep-blue')); }
   const heroRef = useRef<HTMLElement>(null);
   const domeRef = useRef<HTMLElement>(null);
   const chatRef = useRef<HTMLElement>(null);
@@ -50,11 +62,11 @@ function App() {
   function exportDossier(kind: string) { const content = kind === 'JSON' ? JSON.stringify({ readiness: 82.4, openFindings: 6, controlCoverage: '47/56' }, null, 2) : '# O&G Executive Readiness Dossier\n\nReadiness index: 82.4 / 100\nControl coverage: 47 / 56'; const link = document.createElement('a'); link.href = URL.createObjectURL(new Blob([content], { type: 'text/plain' })); link.download = `og-dossier.${kind === 'JSON' ? 'json' : 'md'}`; link.click(); }
 
   return <div className="experience">
-    <StarfieldGalaxyBackground />
+    <StarfieldGalaxyBackground theme={theme} />
     <canvas id="particle-canvas" />
     <div className="mesh-glow mesh-blue" /><div className="mesh-glow mesh-gold" /><div className="noise" />
     <div className="ticker"><div className="ticker-track">⚡ O&amp;G AI SAFETY &amp; COMPLIANCE PIPELINE <b>•</b> AUTHORIZED SANDBOX ENVIRONMENT <b>•</b> ZERO REAL PII USED <b>•</b> PROMPTFOO &amp; GISKARD RED-TEAM ENGINE <b>•</b> MICROSOFT PRESIDIO TWO-SIDED GUARDRAILS <b>•</b> NIST AI RMF &amp; EU AI ACT MAPPED <b>•</b> O&amp;G AI SAFETY &amp; COMPLIANCE PIPELINE <b>•</b> AUTHORIZED SANDBOX ENVIRONMENT <b>•</b></div></div>
-    <nav className={`pill-nav ${brandRight ? 'brand-right' : ''}`}><div className="nav-brand"><button className="nav-menu" onClick={() => setNavOpen(!navOpen)}><Menu size={17} /></button><button className="logo-button" onClick={() => setBrandRight(!brandRight)} title="Move brand"><img src="/assets/branding/og-logo.jpeg" alt="O&G" /></button><strong>O&amp;G<span>.</span></strong></div><div className={`nav-links ${navOpen ? 'open' : ''}`}><button onClick={() => scrollTo(heroRef)}>HOME</button><button onClick={() => scrollTo(domeRef)}>VIRTUAL DEFENSE DOME</button><button onClick={() => scrollTo(chatRef)}>LIVE CHAT SANDBOX</button><button onClick={() => scrollTo(chatRef)}>PII LASER TUNNEL</button><button onClick={() => scrollTo(complianceRef)}>COMPLIANCE ARENA</button><button onClick={() => setDossier(true)}>EXECUTIVE DOSSIER</button></div><button className="nav-cta" onClick={() => scrollTo(chatRef)}>LAUNCH LIVE TEST <ArrowUpRight size={14} /></button></nav>
+    <nav className={`pill-nav ${brandRight ? 'brand-right' : ''}`}><div className="nav-brand"><button className="nav-menu" onClick={() => setNavOpen(!navOpen)}><Menu size={17} /></button><button className="logo-button" onClick={() => setBrandRight(!brandRight)} title="Move brand"><img src="/assets/branding/og-logo.jpeg" alt="O&G" /></button><strong>O&amp;G<span>.</span></strong></div><div className={`nav-links ${navOpen ? 'open' : ''}`}><button onClick={() => scrollTo(heroRef)}>HOME</button><button onClick={() => scrollTo(domeRef)}>VIRTUAL DEFENSE DOME</button><button onClick={() => scrollTo(chatRef)}>LIVE CHAT SANDBOX</button><button onClick={() => scrollTo(chatRef)}>PII LASER TUNNEL</button><button onClick={() => scrollTo(complianceRef)}>COMPLIANCE ARENA</button><button onClick={() => setDossier(true)}>EXECUTIVE DOSSIER</button></div><button className="theme-toggle" onClick={toggleTheme} title="Toggle theme" aria-label="Toggle theme">{theme === 'deep-blue' ? <Sun size={15} /> : <Moon size={15} />}</button><button className="nav-cta" onClick={() => scrollTo(chatRef)}>LAUNCH LIVE TEST <ArrowUpRight size={14} /></button></nav>
 
     <main>
       <section className="hero section-shell" ref={heroRef}><div className="hero-copy"><div className="eyebrow-pill"><span /> O&amp;G NEXT-GEN AI SAFETY PIPELINE <b>•</b> SYNTHETIC SANDBOX</div><h1>BREAK THE<br /><span>MODEL.</span><br />LOCK THE <em>SHIELD.</em></h1><p>Experience automated red-teaming, two-sided PII guardrails, and a compliance audit arena built for informed deployment decisions.</p><div className="hero-actions"><button className="button gold" onClick={() => scrollTo(domeRef)}>Explore Defense Dome <ArrowUpRight size={16} /></button><button className="button cyan" onClick={() => scrollTo(chatRef)}>Enter Chat Sandbox <MessageSquare size={15} /></button><button className="button attack" onClick={fireAttack}><Zap size={15} /> Fire simulated attack</button></div><div className="hero-proof"><div><strong>82.4</strong><span>READINESS INDEX</span></div><i /><div><strong>98.7%</strong><span>PII PRECISION</span></div><i /><div><strong>47/56</strong><span>CONTROLS MAPPED</span></div></div></div><div className={`hero-core ${attackMode ? 'attack-mode' : ''}`} onClick={fireAttack}><div className="core-orbit orbit-one" /><div className="core-orbit orbit-two" /><div className="core-orbit orbit-three" /><div className="hero-shield"><Shield size={105} /><span>O&amp;G</span></div><div className="circuit-traces"><i /><i /><i /><i /><i /></div>{attackMode && <><b className="laser laser-one" /><b className="laser laser-two" /><b className="laser laser-three" /></>}<div className="telemetry telemetry-top"><span>CORE / 001</span><b>ONLINE</b></div><div className="telemetry telemetry-bottom"><span>PII SHIELD</span><b>ENGAGED</b></div></div><div className="hero-scroll"><ArrowDown size={15} /> SCROLL TO ENTER THE PIPELINE</div><div className="hero-stage-ribbon">{stages.map((stage, index) => <button key={stage} className={activeStage === index + 1 ? 'active' : ''} onClick={() => setActiveStage(index + 1)}><span>0{index + 1}</span>{stage}</button>)}</div></section>
