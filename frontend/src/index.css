@@ -2,13 +2,13 @@
 
 :root {
   /* Dark mode (default) */
-  --bg: #080808;
-  --bg-2: #111111;
-  --card: #171717;
-  --elev: #202020;
+  --bg: #090909;
+  --bg-2: #141414;
+  --card: #1B1B1B;
+  --elev: #222222;
   --text: #FFFFFF;
-  --text-2: #B5B5B5;
-  --muted: #929292;
+  --text-2: #BDBDBD;
+  --muted: #8A8A8A;
   --border: #303030;
   --accent: #FFFFFF;
   --accent-inv: #000000;
@@ -27,11 +27,11 @@
   --bg-2: #F7F7F7;
   --card: #FFFFFF;
   --elev: #F1F1F1;
-  --text: #111111;
-  --text-2: #444444;
-  --muted: #666666;
-  --border: #E1E1E1;
-  --accent: #111111;
+  --text: #171717;
+  --text-2: #505050;
+  --muted: #737373;
+  --border: #E2E2E2;
+  --accent: #171717;
   --accent-inv: #FFFFFF;
   --shadow: 0 1px 2px rgba(0,0,0,.06), 0 8px 24px rgba(0,0,0,.06);
 }
@@ -162,6 +162,7 @@ img { max-width: 100%; display: block; }
   color: var(--text); font-size: 13px;
   transition: border-color .15s;
 }
+.input::placeholder, .textarea::placeholder { color: var(--muted); }
 .input:focus, .select:focus, .textarea:focus { border-color: var(--text); outline: none; }
 .textarea { min-height: 80px; resize: vertical; }
 .field { display: flex; flex-direction: column; gap: 6px; }
