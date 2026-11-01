@@ -9,6 +9,8 @@
     "dev": "npm --prefix frontend run dev",
     "build": "npm --prefix frontend install && npm --prefix frontend run build",
     "lint": "npm --prefix frontend run lint",
-    "typecheck": "npm --prefix frontend run typecheck"
+    "typecheck": "npm --prefix frontend run typecheck",
+    "redteam:eval": "npx promptfoo eval",
+    "redteam:view": "npx promptfoo view"
   }
 }
