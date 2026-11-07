@@ -4,7 +4,9 @@
 [![Vite](https://img.shields.io/badge/Vite-7.3-646CFF?logo=vite&logoColor=white)](https://vitejs.dev/)
 [![React](https://img.shields.io/badge/React-18.3-61DAFB?logo=react&logoColor=black)](https://react.dev/)
 [![TailwindCSS](https://img.shields.io/badge/Tailwind-3.4-38B2AC?logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![Node.js](https://img.shields.io/badge/Node.js-18-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
+[![Express](https://img.shields.io/badge/Express-4-000000?logo=express&logoColor=white)](https://expressjs.com/)
+[![Promptfoo](https://img.shields.io/badge/Promptfoo-7-000000)](https://promptfoo.dev/)
 [![Presidio](https://img.shields.io/badge/Microsoft_Presidio-PII_Guardrails-blue)](https://microsoft.github.io/presidio/)
 
 > **Next-Gen AI Safety & Compliance Pipeline for Enterprise Model Deployment.**
@@ -152,6 +154,63 @@ uvicorn app.main:app --reload --port 8000
 
 * Interactive OpenAPI Docs: [http://localhost:8000/docs](http://localhost:8000/docs)
 * Health Endpoint: [http://localhost:8000/health](http://localhost:8000/health)
+
+---
+
+### 3. Hybrid Backend (Node.js + Express) — Live Eval + Demo Fallback
+
+The Node.js + Express backend runs Promptfoo red-teaming against local Ollama (qwen3:8b) or a user-submitted target endpoint. It supports hybrid mode: when the backend is online, real-time evaluation runs; when offline, the frontend auto-falls back to precomputed demo results.
+
+```bash
+cd backend
+
+# Install dependencies
+npm install
+
+# Copy environment config
+cp .env.example .env
+# Edit .env: set CORS_ORIGIN to your Netlify domain, OLLAMA_BASE_URL if needed
+
+# Seed demo data (used when backend is offline)
+npm run seed:demo
+
+# Start server (dev with auto-reload)
+npm run dev
+
+# Or production
+npm start
+```
+
+Server runs on `http://localhost:3001` by default.
+
+**Endpoints:**
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/health` | Health check — frontend polls this for live/demo detection |
+| POST | `/api/evaluate` | Start a red-teaming evaluation run |
+| GET | `/api/evaluate/:runId` | Poll for run status and results |
+| GET | `/api/evaluate/:runId/:format` | Download report (`json`, `pdf`, `csv`) |
+
+**Connecting Netlify frontend to your local backend:**
+
+The live site (https://aisafetycompliance.netlify.app/) runs on the public internet, but your backend runs locally. Use a tunnel to expose it:
+
+**Option A — ngrok (simplest):**
+```bash
+npm install -g ngrok
+ngrok http 3001
+```
+Use the `https://....ngrok-free.app` URL as `VITE_BACKEND_ORIGIN` in `frontend/.env`.
+
+**Option B — Cloudflare Tunnel:**
+```bash
+cloudflared tunnel --url http://localhost:3001
+```
+
+**Hybrid mode behavior:**
+- Backend online → "Live Mode" banner, real Promptfoo + Ollama evaluation, downloadable JSON/PDF/CSV reports
+- Backend offline → "Demo Mode — Server Offline" banner, precomputed results shown, downloads generate client-side
 
 ---
 

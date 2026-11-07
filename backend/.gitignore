@@ -1,0 +1,39 @@
+# Dependencies
+node_modules/
+.env
+.env.local
+.env.*.local
+
+# Builds & Outputs
+dist/
+dist-ssr/
+build/
+*.egg-info/
+
+# Reports (generated at runtime)
+reports/*.json
+reports/*.csv
+reports/*.pdf
+reports/**/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment & Secrets
+.env
+
+# Editor & OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Archives & Temporary
+*.zip
+*.log
+.pytest_cache/
+__pycache__/
+*.pyc
