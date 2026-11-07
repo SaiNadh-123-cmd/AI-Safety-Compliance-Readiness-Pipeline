@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: og-ai-safety-backend
+    env: node
+    buildCommand: cd backend && npm install
+    startCommand: cd backend && npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3001
+      - key: CORS_ORIGIN
+        value: https://aisafetycompliance.netlify.app
+      - key: GROQ_API_KEY
+        sync: false
+      - key: GROQ_MODEL
+        value: llama-3.1-8b-instant
+      - key: PROMPTFOO_TIMEOUT
+        value: 300000
+    autoDeploy: true

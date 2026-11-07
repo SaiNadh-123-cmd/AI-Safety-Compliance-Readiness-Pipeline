@@ -6,7 +6,7 @@ import axios from 'axios';
 
 /**
  * Build a promptfoo YAML config for red-teaming.
- * Supports either an external target URL or local Ollama qwen3:8b.
+ * Supports either an external target URL or Groq cloud LLM (default).
  */
 function buildPromptfooConfig({ targetUrl, apiKey, headers, model, tests }) {
   const providers = [];
@@ -19,18 +19,17 @@ function buildPromptfooConfig({ targetUrl, apiKey, headers, model, tests }) {
       ...(apiKey && { headers: { Authorization: `Bearer ${apiKey}`, ...headers } }),
     });
   } else {
-    // Default: local Ollama qwen3:8b
+    // Default: Groq cloud LLM (api key from GROQ_API_KEY env var)
     providers.push({
-      id: 'ollama:chat',
+      id: 'groq:chat',
       config: {
-        model,
-        baseUrl: process.env.OLLAMA_BASE_URL || 'http://localhost:11434',
+        model: model || 'llama-3.1-8b-instant',
         temperature: 0.7,
-        num_predict: 512,
+        max_tokens: 512,
       },
     });
     targets.push({
-      provider: 'ollama:chat',
+      provider: 'groq:chat',
     });
   }
 
@@ -74,9 +73,8 @@ function buildPromptfooConfig({ targetUrl, apiKey, headers, model, tests }) {
       yaml += `  - id: ${p.id}\n`;
       yaml += `    config:\n`;
       yaml += `      model: ${p.config.model}\n`;
-      yaml += `      baseUrl: ${p.config.baseUrl}\n`;
       yaml += `      temperature: ${p.config.temperature}\n`;
-      yaml += `      num_predict: ${p.config.num_predict}\n`;
+      yaml += `      max_tokens: ${p.config.max_tokens}\n`;
     }
   }
 
@@ -102,7 +100,7 @@ function buildPromptfooConfig({ targetUrl, apiKey, headers, model, tests }) {
 }
 
 /**
- * Run Promptfoo programmatically against the target.
+ * Run Promptfoo programmatically against Groq cloud LLM.
  * Returns parsed results with pass/fail per test.
  */
 export async function runPromptfooEvaluation({ runId, targetUrl, apiKey, headers, model, tests }) {
@@ -126,7 +124,6 @@ export async function runPromptfooEvaluation({ runId, targetUrl, apiKey, headers
     });
     promptfooCmd = 'npx';
   } catch {
-    // Fallback: try global promptfoo
     promptfooCmd = 'promptfoo';
   }
 
@@ -149,7 +146,6 @@ export async function runPromptfooEvaluation({ runId, targetUrl, apiKey, headers
     try {
       rawResults = JSON.parse(content);
     } catch {
-      // If not JSON array, try to parse line by line
       rawResults = content.split('\n').filter(Boolean).map((line) => {
         try { return JSON.parse(line); } catch { return { raw: line }; }
       });
@@ -161,7 +157,7 @@ export async function runPromptfooEvaluation({ runId, targetUrl, apiKey, headers
     id: r.id || `test-${i + 1}`,
     description: r.description || `Red-team test ${i + 1}`,
     prompt: r.prompt || (tests[i] && tests[i].prompt) || '',
-    target: targetUrl || `ollama:${model}`,
+    target: targetUrl || `groq:${model || 'llama-3.1-8b-instant'}`,
     passed: r.passed ?? r.vulnerable === false,
     severity: r.severity || 'medium',
     score: r.score || 0,
@@ -172,8 +168,8 @@ export async function runPromptfooEvaluation({ runId, targetUrl, apiKey, headers
 
   return {
     runId,
-    target: targetUrl || `ollama:${model}`,
-    model,
+    target: targetUrl || `groq:${model || 'llama-3.1-8b-instant'}`,
+    model: model || 'llama-3.1-8b-instant',
     totalTests: normalized.length,
     passedTests: normalized.filter((t) => t.passed).length,
     failedTests: normalized.filter((t) => !t.passed).length,
@@ -183,15 +179,21 @@ export async function runPromptfooEvaluation({ runId, targetUrl, apiKey, headers
 }
 
 /**
- * Quick health check for Ollama availability.
+ * Quick health check for Groq API availability.
  */
-export async function checkOllamaHealth() {
+export async function checkGroqHealth() {
   try {
-    const baseUrl = process.env.OLLAMA_BASE_URL || 'http://localhost:11434';
-    const res = await axios.get(`${baseUrl}/api/tags`, { timeout: 3000 });
+    const apiKey = process.env.GROQ_API_KEY;
+    if (!apiKey) {
+      return { online: false, models: [], error: 'GROQ_API_KEY not set' };
+    }
+    const res = await axios.get('https://api.groq.com/openai/v1/models', {
+      headers: { Authorization: `Bearer ${apiKey}` },
+      timeout: 10000,
+    });
     return {
       online: true,
-      models: res.data.models?.map((m) => m.name) || [],
+      models: res.data.data?.map((m) => m.id) || [],
     };
   } catch {
     return { online: false, models: [] };
