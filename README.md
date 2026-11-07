@@ -4,10 +4,8 @@
 [![Vite](https://img.shields.io/badge/Vite-7.3-646CFF?logo=vite&logoColor=white)](https://vitejs.dev/)
 [![React](https://img.shields.io/badge/React-18.3-61DAFB?logo=react&logoColor=black)](https://react.dev/)
 [![TailwindCSS](https://img.shields.io/badge/Tailwind-3.4-38B2AC?logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
-[![Node.js](https://img.shields.io/badge/Node.js-18-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
-[![Express](https://img.shields.io/badge/Express-4-000000?logo=express&logoColor=white)](https://expressjs.com/)
 [![Promptfoo](https://img.shields.io/badge/Promptfoo-7-000000)](https://promptfoo.dev/)
-[![Presidio](https://img.shields.io/badge/Microsoft_Presidio-PII_Guardrails-blue)](https://microsoft.github.io/presidio/)
+[![Ollama](https://img.shields.io/badge/Ollama-qwen3:8b-000000)](https://ollama.ai/)
 
 > **Next-Gen AI Safety & Compliance Pipeline for Enterprise Model Deployment.**
 > Experience automated red-teaming, two-sided PII guardrails, and a living compliance audit arena mapped to NIST AI RMF and EU AI Act readiness.
@@ -22,40 +20,31 @@
                                │  (Synthetic Payloads/Prompts)│
                                └──────────────┬──────────────┘
                                               │
-                      ┌───────────────────────▼───────────────────────┐
-                      │  WORKSTREAM B: TWO-SIDED PII LASER TUNNEL     │
-                      │  ──────────────────────────────────────────   │
-                      │  Chamber 01: Input Pre-Processor              │
-                      │  • Microsoft Presidio Analyzer + spaCy NLP    │
-                      │  • Sensitive Entity Masking ([PHONE], [CARD]) │
-                      └───────────────────────┬───────────────────────┘
+                       ┌───────────────────────▼───────────────────────┐
+                       │  WORKSTREAM A: VIRTUAL DEFENSE DOME           │
+                       │  ─────────────────────────────────────────   │
+                       │ • Spatial 3D rotating core with 3s pulse     │
+                       │ • 6 Adversarial Portals:                     │
+                       │   01 Jailbreaks & Instruction Override       │
+                       │   02 Roleplay Jailbreak                      │
+                       │   03 System-Prompt & Context Leakage         │
+                       │   04 Sensitive-Data Disclosure               │
+                       │   05 Toxic & Abusive Output                  │
+                       │   06 Dangerous / High-Impact Advice          │
+                       └──────────────────────────────────────────────┘
                                               │
-                      ┌───────────────────────▼───────────────────────┐
-                      │  Chamber 02: Model Core Execution             │
-                      │  • Target: O&G-ENTERPRISE-ASSISTANT v2.4      │
-                      │  • Live Interactive Sandbox + Raw Peek Toggle │
-                      └───────────────────────┬───────────────────────┘
+                       ┌───────────────────────▼───────────────────────┐
+                       │  WORKSTREAM B: TWO-SIDED PII LASER TUNNEL     │
+                       │  • Microsoft Presidio Analyzer + spaCy NLP    │
+                       │  • Sensitive Entity Masking                   │
+                       └──────────────────────────────────────────────┘
                                               │
-                      ┌───────────────────────▼───────────────────────┐
-                      │  Chamber 03: Output Post-Processor            │
-                      │  • Response scrubbing & Leakage Verification  │
-                      │  • False Positive (1.3%) / Negative (0.8%)    │
-                      └───────────────────────┬───────────────────────┘
-                                              │
-     ┌────────────────────────────────────────┴────────────────────────────────────────┐
-     │                                                                                 │
-┌────▼─────────────────────────────────────┐      ┌────────────────────────────────────▼────┐
-│ WORKSTREAM A: VIRTUAL DEFENSE DOME       │      │ WORKSTREAM C: COMPLIANCE ARENA          │
-│ ──────────────────────────────────       │      │ ──────────────────────────────          │
-│ • Spatial 3D rotating core with 3s pulse │      │ • NIST AI RMF Bento: GOVERN · MAP       │
-│ • 5 Adversarial Portals:                 │      │   MEASURE · MANAGE                      │
-│   01 Jailbreaks & Instruction Override   │      │ • EU AI Act Human Legal Review Queue    │
-│   02 System-Prompt & Context Leakage     │      │ • Live Evidence Console (Controls Mapped)│
-│   03 Sensitive-Data Disclosure           │      │ • Executive Dossier (Export JSON/MD/PDF)│
-│   04 Toxic & Abusive Output              │      └─────────────────────────────────────────┘
-│   05 Dangerous / High-Impact Advice      │
-│ • Reproducible test cases & remediation  │
-└──────────────────────────────────────────┘
+                       ┌───────────────────────▼───────────────────────┐
+                       │  WORKSTREAM C: COMPLIANCE ARENA               │
+                       │  • NIST AI RMF: GOVERN · MAP · MEASURE · MANAGE│
+                       │  • EU AI Act Human Legal Review Queue         │
+                       │  • Executive Dossier (Export JSON/MD/PDF)     │
+                       └──────────────────────────────────────────────┘
 ```
 
 ---
@@ -64,36 +53,35 @@
 
 ```
 AI_Safety_Pipeline/
-├── frontend/                     # Vite + React + Tailwind Frontend
+├── frontend/                     # Vite + React + Tailwind Frontend (Demo Mode)
 │   ├── public/assets/branding/   # O&G logo branding assets
 │   ├── src/
-│   │   ├── types/
-│   │   │   └── pipeline.ts       # Domain interfaces (AttackFinding, PIIEntity, etc.)
+│   │   ├── components/
+│   │   │   ├── DemoModeBanner.tsx   # "Demo Mode — Using Sandbox Results" badge
+│   │   │   ├── EvaluationPanel.tsx  # Red-teaming results viewer + downloads
+│   │   │   └── StarfieldGalaxyBackground.tsx
+│   │   ├── data/
+│   │   │   ├── demo-tests.ts        # Pre-defined Promptfoo test suite
+│   │   │   └── redteam-results.json # Pre-computed sandbox results (6 tests)
 │   │   ├── services/
-│   │   │   └── api.ts            # FastAPI integration client with offline fallbacks
-│   │   ├── App.tsx               # Pipeline layout & orchestration
-│   │   ├── index.css             # Cybernetic styling, 3D keyframes & glowing meshes
-│   │   └── main.tsx              # React DOM mounting
+│   │   │   └── api.ts               # Demo-only API client (no live backend)
+│   │   ├── App.tsx                  # Pipeline layout & orchestration
+│   │   ├── index.css                # Styling, 3D keyframes, demo component styles
+│   │   └── main.tsx                 # React DOM mounting
 │   ├── package.json
-│   └── vite.config.ts            # Configured proxy to FastAPI backend
+│   └── vite.config.ts
 │
-├── backend/                      # Python FastAPI Microservice
-│   ├── app/
-│   │   ├── api/v1/
-│   │   │   ├── endpoints/
-│   │   │   │   ├── pii.py        # Presidio Analyzer & Anonymizer endpoints
-│   │   │   │   ├── chat.py       # Two-sided guardrail chat route
-│   │   │   │   ├── redteam.py    # Adversarial probes & threat signal telemetry
-│   │   │   │   └── compliance.py # NIST AI RMF & EU AI Act evidence state
-│   │   │   └── api.py
-│   │   ├── core/
-│   │   │   └── config.py         # CORS, settings & target models
-│   │   └── main.py               # FastAPI application entrypoint
-│   ├── requirements.txt          # Backend dependencies
+├── backend/                       # Local dev tooling ONLY (not required for live site)
+│   ├── src/                       # Node.js + Express (local development)
+│   ├── package.json
 │   └── README.md
 │
-├── .gitignore                    # Monorepo ignores (node_modules, venv, caches)
-├── package.json                  # Root proxy scripts
+├── redteam/                       # Promptfoo + Ollama local red-teaming tooling
+│   ├── promptfoo-config.yaml      # Promptfoo test config for local regeneration
+│   └── README.md                  # Instructions for regenerating demo results
+│
+├── .gitignore                     # Monorepo ignores
+├── package.json                   # Root proxy scripts
 └── README.md
 ```
 
@@ -103,23 +91,23 @@ AI_Safety_Pipeline/
 
 ### 1. Frontend Development (Vite + React)
 
-You can launch the frontend directly from the workspace root or from the `frontend/` directory:
+The frontend runs entirely in **Demo Mode** — no backend, no tunnel, no ngrok required.
 
 ```bash
-# Option A: From root directory
+# From the workspace root
 npm install
 npm run dev
 
-# Option B: From frontend directory
+# Or from the frontend directory
 cd frontend
 npm install
 npm run dev
 ```
 
-Visit [LIVE]((https://ai-complence.netlify.app/)) in your browser.
-“The live site is an interactive demonstration of the AI Safety & Compliance pipeline using pre-computed sandbox results.
+Visit **http://localhost:5173** in your browser.
 
-The complete, reproducible red-teaming suite (Promptfoo + Ollama) is included in the repository so any team member can run real adversarial tests locally against an authorized model.”
+The live site (https://aisafetycompliance.netlify.app/) also runs in Demo Mode using pre-computed results.
+
 #### Frontend Scripts:
 * `npm run dev` — Start Vite local dev server with HMR.
 * `npm run build` — Compile production-ready bundle.
@@ -128,99 +116,54 @@ The complete, reproducible red-teaming suite (Promptfoo + Ollama) is included in
 
 ---
 
-### 2. Backend Development (FastAPI + Microsoft Presidio)
+## 🔄 Demo Mode
 
-```bash
-cd backend
+The live site always runs in **Demo Mode** with pre-computed red-teaming results:
 
-# Create virtual environment
-python -m venv .venv
+* **Badge:** "Demo Mode — Using Sandbox Results" (shown at top of page)
+* **Source:** `frontend/src/data/redteam-results.json` — 6 pre-computed test results
+* **Downloads:** JSON, PDF, and CSV reports generated client-side (no server needed)
+* **Tests covered:** Jailbreak, roleplay jailbreak, system-prompt leakage, sensitive-data disclosure, toxic output, dangerous medical advice
 
-# Activate virtual environment
-# Windows PowerShell:
-.\.venv\Scripts\Activate.ps1
-# macOS/Linux:
-source .venv/bin/activate
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Download spaCy model for Microsoft Presidio
-python -m spacy download en_core_web_sm
-
-# Launch API server
-uvicorn app.main:app --reload --port 8000
-```
-
-* Interactive OpenAPI Docs: [http://localhost:8000/docs](http://localhost:8000/docs)
-* Health Endpoint: [http://localhost:8000/health](http://localhost:8000/health)
+The demo results were generated by running Promptfoo against qwen3:8b via Ollama. All 6 tests show realistic refusal responses from the model.
 
 ---
 
-### 3. Hybrid Backend (Node.js + Express) — Live Eval + Demo Fallback
+## 🧪 Local Red-Teaming (Optional)
 
-The Node.js + Express backend runs Promptfoo red-teaming against local Ollama (qwen3:8b) or a user-submitted target endpoint. It supports hybrid mode: when the backend is online, real-time evaluation runs; when offline, the frontend auto-falls back to precomputed demo results.
+To regenerate or extend the pre-computed results locally, use the `redteam/` folder:
 
 ```bash
-cd backend
+cd redteam
 
-# Install dependencies
-npm install
+# Prerequisites: Ollama running with qwen3:8b pulled
+ollama serve          # Terminal 1
+ollama pull qwen3:8b  # Terminal 2
 
-# Copy environment config
-cp .env.example .env
-# Edit .env: set CORS_ORIGIN to your Netlify domain, OLLAMA_BASE_URL if needed
+# Install promptfoo
+npm install -g promptfoo@latest
 
-# Seed demo data (used when backend is offline)
-npm run seed:demo
+# Run the full red-teaming suite
+npx promptfoo eval -c promptfoo-config.yaml
 
-# Start server (dev with auto-reload)
-npm run dev
-
-# Or production
-npm start
+# View interactive results
+npx promptfoo view
 ```
 
-Server runs on `http://localhost:3001` by default.
+See [`redteam/README.md`](redteam/README.md) for full instructions on regenerating `frontend/src/data/redteam-results.json`.
 
-**Endpoints:**
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/health` | Health check — frontend polls this for live/demo detection |
-| POST | `/api/evaluate` | Start a red-teaming evaluation run |
-| GET | `/api/evaluate/:runId` | Poll for run status and results |
-| GET | `/api/evaluate/:runId/:format` | Download report (`json`, `pdf`, `csv`) |
-
-**Connecting Netlify frontend to your local backend:**
-
-The live site (https://aisafetycompliance.netlify.app/) runs on the public internet, but your backend runs locally. Use a tunnel to expose it:
-
-**Option A — ngrok (simplest):**
-```bash
-npm install -g ngrok
-ngrok http 3001
-```
-Use the `https://....ngrok-free.app` URL as `VITE_BACKEND_ORIGIN` in `frontend/.env`.
-
-**Option B — Cloudflare Tunnel:**
-```bash
-cloudflared tunnel --url http://localhost:3001
-```
-
-**Hybrid mode behavior:**
-- Backend online → "Live Mode" banner, real Promptfoo + Ollama evaluation, downloadable JSON/PDF/CSV reports
-- Backend offline → "Demo Mode — Server Offline" banner, precomputed results shown, downloads generate client-side
+The `backend/` folder contains a Node.js + Express server for local development only — it is **not required** for the public live site.
 
 ---
 
 ## 🛡️ Key Features
 
 * **3D Virtual Defense Dome:** Spatial visualization with dual animation (12s continuous rotation + 3s brightness pulse) and radial attack portals.
-* **Interactive Attack Inspector:** Side-by-side before/after remediation slider comparing model outputs and risk containment.
-* **Two-Sided PII Laser Tunnel:** Synthetic payloads routed through real-time input masking and output verification chambers with animated laser beams.
-* **Compliance Matrix Bento Grid:** Interactive cards for NIST AI RMF pillars (`GOVERN`, `MAP`, `MEASURE`, `MANAGE`) and EU AI Act obligations.
-* **Executive Dossier:** Side drawer with readiness metrics (Readiness Index: 82.4/100, 47/56 controls mapped) with JSON, Markdown, and PDF export capabilities.
+* **Red-Teaming Evaluation Panel:** Pre-computed Promptfoo results with pass/fail status, severity scores, and model outputs.
+* **Client-Side Downloads:** JSON, PDF, and CSV reports generated in-browser.
+* **Two-Sided PII Laser Tunnel:** Synthetic payloads routed through input masking and output verification chambers.
+* **Compliance Matrix Bento Grid:** Interactive cards for NIST AI RMF pillars and EU AI Act obligations.
+* **Executive Dossier:** Readiness metrics with JSON/Markdown/PDF export capabilities.
 
 ---
 
