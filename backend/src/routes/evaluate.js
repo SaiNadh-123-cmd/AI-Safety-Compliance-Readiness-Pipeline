@@ -18,7 +18,7 @@ const runs = new Map();
  */
 router.post('/', async (req, res, next) => {
   try {
-    const { targetUrl, apiKey, headers, model = 'qwen3:8b', tests = [] } = req.body;
+    const { targetUrl, apiKey, headers, model = process.env.GROQ_MODEL || 'llama-3.1-8b-instant', tests = [] } = req.body;
 
     const runId = uuidv4();
     const startedAt = new Date().toISOString();
