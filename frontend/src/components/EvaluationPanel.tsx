@@ -88,7 +88,9 @@ export function EvaluationPanel() {
 
       const MARGIN = 20;
       const PAGE_WIDTH = 210; // mm (A4)
+      const PAGE_HEIGHT = 297;
       const CONTENT_WIDTH = PAGE_WIDTH - MARGIN * 2;
+      const BOTTOM_MARGIN = 20;
       const C = {
         navy: [1, 9, 29],
         gold: [255, 238, 85],
@@ -96,17 +98,102 @@ export function EvaluationPanel() {
         emerald: [16, 185, 129],
         crimson: [239, 68, 68],
         dark: [15, 23, 42],
-        muted: [100, 116, 139],
+        slate: [241, 245, 249],
+        emeraldTint: [236, 253, 245],
+        roseTint: [255, 241, 242],
+        kpiFill: [248, 250, 252],
+        kpiBorder: [226, 232, 240],
+        textDark: [30, 41, 59],
+        textMuted: [100, 116, 139],
+        white: [255, 255, 255],
         lightGray: [148, 163, 184],
         amber: [245, 158, 11],
-        textDark: [30, 41, 59],
-        kpiBorder: [226, 232, 240],
-        white: [255, 255, 255],
+        blue: [59, 130, 246],
+        muted: [100, 116, 139],
       };
 
       let y = MARGIN;
+      let pageNum = 1;
 
-      // ── Branded header banner ──
+      /* ───── Helpers ───── */
+      function needSpace(neededHeight: number) {
+        if (y + neededHeight > PAGE_HEIGHT - BOTTOM_MARGIN) {
+          drawFooter(doc, pageNum);
+          doc.addPage();
+          pageNum++;
+          y = MARGIN;
+        }
+      }
+
+      function drawFooter(docRef: jsPDF, pn: number) {
+        const fy = PAGE_HEIGHT - 25;
+        docRef.save();
+        docRef.setDrawColor(C.cyan[0], C.cyan[1], C.cyan[2], 0.15);
+        docRef.setLineWidth(0.5);
+        docRef.line(MARGIN, fy, PAGE_WIDTH - MARGIN, fy);
+
+        docRef.setFillColor(C.muted[0], C.muted[1], C.muted[2]);
+        docRef.setFont('helvetica');
+        docRef.setFontSize(7);
+        docRef.text(
+          'O&G AI Safety & Compliance Pipeline • Technical assessment evidence only; does not constitute legal compliance or launch approval. Human review required.',
+          MARGIN,
+          fy + 6,
+          { maxWidth: CONTENT_WIDTH, align: 'center' }
+        );
+
+        docRef.setFillColor(C.cyan[0], C.cyan[1], C.cyan[2]);
+        docRef.setFont('helvetica', 'bold');
+        docRef.setFontSize(8);
+        docRef.text(
+          'aisafetycompliance.netlify.app',
+          MARGIN,
+          fy + 12,
+          { maxWidth: CONTENT_WIDTH, align: 'center' }
+        );
+
+        docRef.setFillColor(C.muted[0], C.muted[1], C.muted[2]);
+        docRef.setFontSize(7);
+        docRef.text(`Page ${pn}`, PAGE_WIDTH - MARGIN - 25, fy + 16, {
+          maxWidth: 25,
+          align: 'right',
+        });
+        docRef.restore();
+      }
+
+      function drawVectorLogo(cx: number, cy: number, r: number) {
+        const points: [number, number][] = [];
+        for (let i = 0; i < 6; i++) {
+          const angle = (Math.PI / 3) * i - Math.PI / 2;
+          points.push([cx + r * Math.cos(angle), cy + r * Math.sin(angle)]);
+        }
+        doc.setFillColor(C.cyan[0], C.cyan[1], C.cyan[2]);
+        // Draw hexagon outline manually
+        for (let i = 0; i < 6; i++) {
+          const p1 = points[i];
+          const p2 = points[(i + 1) % 6];
+          doc.setDrawColor(C.cyan[0], C.cyan[1], C.cyan[2]);
+          doc.setLineWidth(0.5);
+          doc.line(p1[0], p1[1], p2[0], p2[1]);
+        }
+        doc.setFillColor(C.cyan[0], C.cyan[1], C.cyan[2]);
+
+        doc.setFillColor(C.gold[0], C.gold[1], C.gold[2]);
+        doc.circle(cx, cy, r * 0.42, 'F');
+        doc.setDrawColor(C.navy[0], C.navy[1], C.navy[2]);
+        doc.setLineWidth(0.5);
+        doc.circle(cx, cy, r * 0.42, 'S');
+
+        doc.setFillColor(C.navy[0], C.navy[1], C.navy[2]);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(10);
+        const tw = doc.getTextWidth('O&G');
+        doc.text('O&G', cx - tw / 2, cy - 1.5);
+      }
+
+      /* ───── PAGE 1: BRANDED HEADER ───── */
+      needSpace(175);
+
       doc.setFillColor(C.navy[0], C.navy[1], C.navy[2]);
       doc.rect(0, 0, PAGE_WIDTH, 30, 'F');
       doc.setFillColor(C.gold[0], C.gold[1], C.gold[2]);
@@ -114,31 +201,8 @@ export function EvaluationPanel() {
       doc.setFillColor(C.cyan[0], C.cyan[1], C.cyan[2]);
       doc.rect(0, 31.5, PAGE_WIDTH, 1, 'F');
 
-      // Vector O&G emblem (hexagon)
-      doc.setFillColor(C.cyan[0], C.cyan[1], C.cyan[2]);
-      const cx = MARGIN + 10;
-      const cy = 15;
-      const r = 7;
-      const points: [number, number][] = [];
-      for (let i = 0; i < 6; i++) {
-        const angle = (Math.PI / 3) * i - Math.PI / 2;
-        points.push([cx + r * Math.cos(angle), cy + r * Math.sin(angle)]);
-      }
-      doc.moveTo(points[0][0], points[0][1]);
-      for (let i = 1; i < 6; i++) doc.lineTo(points[i][0], points[i][1]);
-      doc.fill();
-
-      doc.setFillColor(C.gold[0], C.gold[1], C.gold[2]);
-      doc.circle(cx, cy, r * 0.42, 'F');
-      doc.setDrawColor(C.navy[0], C.navy[1], C.navy[2]);
-      doc.setLineWidth(0.5);
-      doc.circle(cx, cy, r * 0.42, 'S');
-
-      doc.setFillColor(C.navy[0], C.navy[1], C.navy[2]);
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(10);
-      const tw = doc.getTextWidth('O&G');
-      doc.text('O&G', cx - tw / 2, cy - 1.5);
+      // Vector O&G emblem
+      drawVectorLogo(MARGIN + 10, 15, 7);
 
       // Title
       doc.setFillColor(C.white[0], C.white[1], C.white[2]);
@@ -155,32 +219,56 @@ export function EvaluationPanel() {
       );
 
       // Metadata pill
-      doc.setFillColor(255, 255, 255);
-      doc.roundedRect(PAGE_WIDTH - MARGIN - 50, 8, 50, 14, 2, 2, 'F');
-      doc.setDrawColor(0, 229, 255);
+      doc.setFillColor(255, 255, 255, 0.08);
+      doc.roundedRect(PAGE_WIDTH - MARGIN - 50, 8, 50, 18, 2, 2, 'F');
+      doc.setDrawColor(C.cyan[0], C.cyan[1], C.cyan[2], 0.35);
       doc.setLineWidth(0.5);
-      doc.roundedRect(PAGE_WIDTH - MARGIN - 50, 8, 50, 14, 2, 2, 'S');
+      doc.roundedRect(PAGE_WIDTH - MARGIN - 50, 8, 50, 18, 2, 2, 'S');
       doc.setFillColor(C.cyan[0], C.cyan[1], C.cyan[2]);
       doc.setFontSize(6.5);
-      doc.text('RUN ID', PAGE_WIDTH - MARGIN - 48, 10.5);
-      doc.setFillColor(C.white[0], C.white[1], C.white[2]);
-      doc.setFontSize(7);
-      doc.text(
-        run.runId.substring(0, 12) + '…',
-        PAGE_WIDTH - MARGIN - 48,
-        13,
-        { maxWidth: 44 }
-      );
+      doc.text('REPORT METADATA', PAGE_WIDTH - MARGIN - 48, 10.5);
+
+      const modeLabel = run.mode === 'live' ? 'LIVE' : 'SANDBOX';
+      const modeColor = run.mode === 'live' ? C.emerald : C.cyan;
+
+      const metaItems = [
+        ['Run ID', run.runId],
+        ['Target System', run.target || 'Groq Cloud LLM'],
+        ['Model', run.model || 'llama-3.1-8b-instant'],
+        ['Mode', modeLabel],
+      ];
+      let my = 12;
+      metaItems.forEach(([label, value]) => {
+        doc.setFillColor(C.lightGray[0], C.lightGray[1], C.lightGray[2]);
+        doc.setFontSize(6.5);
+        doc.text(label, PAGE_WIDTH - MARGIN - 48, my);
+        doc.setFillColor(label === 'Mode' ? modeColor[0] : C.white[0], label === 'Mode' ? modeColor[1] : C.white[1], label === 'Mode' ? modeColor[2] : C.white[2]);
+        doc.setFontSize(7);
+        doc.text(value, PAGE_WIDTH - MARGIN - 48, my + 3, { maxWidth: 44 });
+        my += 4.5;
+      });
 
       y = 40;
 
-      // ── KPI row ──
+      /* ───── EXECUTIVE DASHBOARD ───── */
+      needSpace(50);
+
+      doc.setFillColor(C.navy[0], C.navy[1], C.navy[2]);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(11);
+      doc.text('EXECUTIVE DASHBOARD', MARGIN, y);
+      y += 6;
+      doc.setDrawColor(C.cyan[0], C.cyan[1], C.cyan[2]);
+      doc.setLineWidth(0.5);
+      doc.line(MARGIN, y, MARGIN + 60, y);
+      y += 10;
+
       const passRate = run.totalTests > 0 ? ((run.passedTests / run.totalTests) * 100).toFixed(1) : '0.0';
       const kpis = [
         { label: 'TOTAL PROBES', value: run.totalTests, accent: C.navy },
         { label: 'PASSED SAFEGUARDS', value: run.passedTests, accent: C.emerald },
-        { label: 'CRITICAL / FAILED', value: run.failedTests, accent: C.crimson },
-        { label: 'PASS RATE', value: passRate + '%', accent: C.cyan },
+        { label: 'FAILED / CRITICAL', value: run.failedTests, accent: C.crimson },
+        { label: 'SAFETY PASS RATE', value: passRate + '%', accent: C.cyan },
       ];
       const kpiW = (CONTENT_WIDTH - 3 * 4) / 4;
       kpis.forEach((k, i) => {
@@ -202,22 +290,215 @@ export function EvaluationPanel() {
       });
       y += 20;
 
-      // ── Evidence cards ──
+      /* Category breakdown stacked bars */
+      needSpace(60);
       doc.setFillColor(C.navy[0], C.navy[1], C.navy[2]);
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(11);
-      doc.text('[02] ADVERSARIAL RED-TEAM EVIDENCE LOG', MARGIN, y);
+      doc.text('RED-TEAM CATEGORY BREAKDOWN', MARGIN, y);
       y += 6;
+      doc.setDrawColor(C.cyan[0], C.cyan[1], C.cyan[2]);
+      doc.setLineWidth(0.5);
+      doc.line(MARGIN, y, MARGIN + 78, y);
+      y += 10;
+
+      const categories = [
+        { label: 'Jailbreaks & Override', key: 'jailbreak', color: C.navy },
+        { label: 'System-Prompt Leakage', key: 'system-prompt', color: C.blue },
+        { label: 'PII Disclosure', key: 'sensitive-data', color: C.amber },
+        { label: 'Toxic / Abusive Output', key: 'toxic', color: C.crimson },
+        { label: 'Dangerous Advice', key: 'dangerous', color: C.cyan },
+      ];
+
+      const catStats = categories.map((c) => {
+        const matching = run.results.filter((r) =>
+          (r.category || '').toLowerCase().includes(c.key.split('-')[0]) ||
+          r.description.toLowerCase().includes(c.key.split('-')[0]) ||
+          r.id.toLowerCase().includes(c.key.replace('-', ''))
+        );
+        const total = matching.length || 1;
+        const passed = matching.filter((r) => r.passed).length;
+        return { ...c, total, passed, failed: total - passed, rate: (passed / total) * 100 };
+      });
+
+      const barH = 5;
+      const barGap = 3;
+      const labelW = 45;
+      const chartW = CONTENT_WIDTH - labelW - 10;
+
+      catStats.forEach((c) => {
+        needSpace(barH + barGap + 3);
+        doc.setFillColor(C.textDark[0], C.textDark[1], C.textDark[2]);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(7);
+        doc.text(c.label, MARGIN, y + 1.5, { maxWidth: labelW, align: 'right' });
+
+        const barX = MARGIN + labelW + 5;
+        const passW = (chartW * c.passed) / c.total;
+        const failW = chartW - passW;
+
+        // Background
+        doc.setFillColor(C.kpiBorder[0], C.kpiBorder[1], C.kpiBorder[2]);
+        doc.roundedRect(barX, y, chartW, barH, 1, 1, 'F');
+
+        // Pass segment
+        if (passW > 0) {
+          doc.setFillColor(C.emerald[0], C.emerald[1], C.emerald[2]);
+          doc.roundedRect(barX, y, passW, barH, 1, 1, 'F');
+        }
+
+        // Fail segment
+        if (failW > 0) {
+          doc.setFillColor(C.crimson[0], C.crimson[1], C.crimson[2]);
+          doc.roundedRect(barX + passW, y, failW, barH, 1, 1, 'F');
+        }
+
+        // Percentage label
+        doc.setFillColor(C.white[0], C.white[1], C.white[2]);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(6);
+        doc.text(`${Math.round(c.rate)}%`, barX + chartW / 2 - 5, y + 1.5, {
+          maxWidth: 10,
+          align: 'center',
+        });
+
+        y += barH + barGap;
+      });
+
+      y += 8;
+
+      /* ───── TABLE OF CONTENTS ───── */
+      needSpace(50);
+      doc.setFillColor(C.navy[0], C.navy[1], C.navy[2]);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(11);
+      doc.text('INTERACTIVE TABLE OF CONTENTS', MARGIN, y);
+      y += 6;
+      doc.setDrawColor(C.cyan[0], C.cyan[1], C.cyan[2]);
+      doc.setLineWidth(0.5);
+      doc.line(MARGIN, y, MARGIN + 92, y);
+      y += 8;
+
+      const tocItems = [
+        { num: '01', title: 'Executive Telemetry & Pass Rate', dest: '#summary' },
+        { num: '02', title: 'Adversarial Red-Team Evidence Cards', dest: '#evidence' },
+        { num: '03', title: 'Workstream B: PII Guardrail Verification', dest: '#pii' },
+        { num: '04', title: 'Workstream C: NIST AI RMF & EU AI Act Matrix', dest: '#compliance' },
+      ];
+
+      tocItems.forEach((item) => {
+        needSpace(8);
+        doc.setFillColor(C.cyan[0], C.cyan[1], C.cyan[2]);
+        doc.roundedRect(MARGIN, y, 20, 7, 2, 2, 'F');
+        doc.setFillColor(C.navy[0], C.navy[1], C.navy[2]);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(8);
+        doc.text(item.num, MARGIN, y + 1.5, { maxWidth: 20, align: 'center' });
+
+        doc.setFillColor(C.textDark[0], C.textDark[1], C.textDark[2]);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(8.5);
+        doc.textWithLink(item.title, MARGIN + 24, y + 1.5, item.dest);
+
+        y += 7;
+      });
+
+      y += 8;
+
+      /* ───── PAGE BREAK → EVIDENCE LOG ───── */
+      needSpace(30);
+      drawFooter(doc, pageNum);
+      doc.addPage();
+      pageNum++;
+      y = MARGIN;
+
+      doc.setFillColor(C.navy[0], C.navy[1], C.navy[2]);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(14);
+      doc.textWithLink('[01] EXECUTIVE TELEMETRY & PASS RATE', MARGIN, y, '#summary');
+      y += 8;
+      doc.setDrawColor(C.cyan[0], C.cyan[1], C.cyan[2]);
+      doc.setLineWidth(0.5);
+      doc.line(MARGIN, y, MARGIN + 110, y);
+      y += 12;
+
+      // Risk score box
+      const riskScore = Math.round(parseFloat(passRate));
+      const riskColor = riskScore >= 80 ? C.emerald : riskScore >= 60 ? C.amber : C.crimson;
+      const riskLabel = riskScore >= 80 ? 'LOW RISK' : riskScore >= 60 ? 'MODERATE RISK' : 'HIGH RISK';
+
+      doc.setFillColor(C.kpiFill[0], C.kpiFill[1], C.kpiFill[2]);
+      doc.roundedRect(MARGIN, y, CONTENT_WIDTH, 20, 2, 2, 'F');
+      doc.setDrawColor(C.kpiBorder[0], C.kpiBorder[1], C.kpiBorder[2]);
+      doc.setLineWidth(0.5);
+      doc.roundedRect(MARGIN, y, CONTENT_WIDTH, 20, 2, 2, 'S');
+
+      doc.setFillColor(riskColor[0], riskColor[1], riskColor[2]);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(18);
+      doc.text(riskScore.toString(), MARGIN + 8, y + 3);
+
+      doc.setFillColor(C.textDark[0], C.textDark[1], C.textDark[2]);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9);
+      doc.text(riskLabel, MARGIN + 30, y + 4);
+
+      doc.setFillColor(C.textMuted[0], C.textMuted[1], C.textMuted[2]);
+      doc.setFontSize(7);
+      doc.text(
+        `Safety boundary effectiveness based on ${run.passedTests}/${run.totalTests} red-teaming probes passed. ${run.failedTests} finding(s) require immediate remediation before deployment.`,
+        MARGIN + 30,
+        y + 10,
+        { maxWidth: CONTENT_WIDTH - 30 - 10 }
+      );
+
+      y += 24;
+
+      // Model info
+      doc.setFillColor(C.textMuted[0], C.textMuted[1], C.textMuted[2]);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(7);
+      doc.text('EVALUATION CONFIGURATION', MARGIN, y);
+      y += 5;
+      const configRows = [
+        ['Target Model', run.model || 'llama-3.1-8b-instant'],
+        ['Provider', 'Groq Cloud (api.groq.com)'],
+        ['Test Framework', 'Promptfoo'],
+        ['Test Categories', '5 / Workstreams A-E'],
+        ['Mode', run.mode === 'live' ? 'LIVE' : 'SANDBOX'],
+        ['Run ID', run.runId],
+      ];
+      configRows.forEach(([label, value]) => {
+        doc.setFillColor(C.textDark[0], C.textDark[1], C.textDark[2]);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(7);
+        doc.text(label, MARGIN, y, { maxWidth: 35 });
+        doc.setFillColor(C.muted[0], C.muted[1], C.muted[2]);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7);
+        doc.text(value, MARGIN + 38, y, { maxWidth: CONTENT_WIDTH - 38 });
+        y += 5;
+      });
+
+      /* ───── EVIDENCE CARDS ───── */
+      y += 8;
+      needSpace(30);
+      doc.setFillColor(C.navy[0], C.navy[1], C.navy[2]);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(14);
+      doc.textWithLink('[02] ADVERSARIAL RED-TEAM EVIDENCE CARDS', MARGIN, y, '#evidence');
+      y += 6;
+      doc.setDrawColor(C.cyan[0], C.cyan[1], C.cyan[2]);
+      doc.setLineWidth(0.5);
+      doc.line(MARGIN, y, MARGIN + 100, y);
+      y += 10;
 
       run.results.forEach((r) => {
         const promptLines = doc.splitTextToSize(r.prompt, CONTENT_WIDTH - 30, { fontSize: 7 });
         const outputLines = doc.splitTextToSize(r.output || '(no output)', CONTENT_WIDTH - 30, { fontSize: 7 });
-        const cardHneeded = 10 + promptLines.length * 4.5 + outputLines.length * 4.5 + 14;
+        const cardHneeded = 10 + promptLines.length * 4 + outputLines.length * 4 + 14;
 
-        if (y + cardHneeded > 280) {
-          doc.addPage();
-          y = MARGIN;
-        }
+        needSpace(cardHneeded + 5);
 
         const cardY = y;
         const statusColor = r.passed ? C.emerald : C.crimson;
@@ -253,8 +534,8 @@ export function EvaluationPanel() {
 
         let py = cardY + 9;
         // Prompt box
-        doc.setFillColor(241, 245, 249);
-        doc.roundedRect(MARGIN + 2, py, CONTENT_WIDTH - 4, promptLines.length * 4.5 + 4, 1.5, 1.5, 'F');
+        doc.setFillColor(C.slate[0], C.slate[1], C.slate[2]);
+        doc.roundedRect(MARGIN + 2, py, CONTENT_WIDTH - 4, promptLines.length * 4 + 4, 1.5, 1.5, 'F');
         doc.setFillColor(C.muted[0], C.muted[1], C.muted[2]);
         doc.setFontSize(6);
         doc.text('ADVERSARIAL PROMPT', MARGIN + 6, py + 1.5);
@@ -262,12 +543,12 @@ export function EvaluationPanel() {
         doc.setFontSize(7);
         doc.text(promptLines, MARGIN + 6, py + 5);
 
-        py += promptLines.length * 4.5 + 6;
+        py += promptLines.length * 4 + 6;
 
         // Response box
-        const respBg = r.passed ? [236, 253, 245] : [255, 241, 242];
+        const respBg = r.passed ? C.emeraldTint : C.roseTint;
         doc.setFillColor(respBg[0], respBg[1], respBg[2]);
-        doc.roundedRect(MARGIN + 2, py, CONTENT_WIDTH - 4, outputLines.length * 4.5 + 4, 1.5, 1.5, 'F');
+        doc.roundedRect(MARGIN + 2, py, CONTENT_WIDTH - 4, outputLines.length * 4 + 4, 1.5, 1.5, 'F');
         const respTextColor = r.passed ? C.emerald : C.crimson;
         doc.setFillColor(respTextColor[0], respTextColor[1], respTextColor[2]);
         doc.setFontSize(6);
@@ -280,27 +561,32 @@ export function EvaluationPanel() {
         doc.setFontSize(7);
         doc.text(doc.splitTextToSize(r.output || '(no output)', CONTENT_WIDTH - 30, { fontSize: 7 }), MARGIN + 6, py + 5);
 
-        y = py + outputLines.length * 4.5 + 10;
+        y = py + outputLines.length * 4 + 10;
       });
 
       y += 8;
 
-      // ── Compliance matrix ──
+      /* ───── COMPLIANCE MATRIX ───── */
+      needSpace(30);
       doc.setFillColor(C.navy[0], C.navy[1], C.navy[2]);
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(11);
-      doc.text('[03] NIST AI RMF & EU AI ACT COMPLIANCE MATRIX', MARGIN, y);
+      doc.setFontSize(14);
+      doc.textWithLink('[04] WORKSTREAM C: NIST AI RMF & EU AI ACT MATRIX', MARGIN, y, '#compliance');
       y += 6;
+      doc.setDrawColor(C.cyan[0], C.cyan[1], C.cyan[2]);
+      doc.setLineWidth(0.5);
+      doc.line(MARGIN, y, MARGIN + 140, y);
+      y += 10;
 
-      const matrix = [
-        ['GOVERN — Accountability', 'RT-038', 'IN PROGRESS', 'HIGH', 'Remediate critical findings within 14 days'],
-        ['MAP — Context Mapping', 'MAP-014', 'PASSED', 'MEDIUM', 'All attack vectors covered'],
-        ['MEASURE — Metrics', 'MES-021', 'PASSED', 'MEDIUM', 'Pass/fail rates logged'],
-        ['MANAGE — Response', 'MAN-009', 'REVIEW', 'HIGH', 'Human review before production release'],
-        ['EU AI Act — Art. 10 Data Gov.', 'EU-10-A', 'PASSED', 'MEDIUM', 'No PII leakage detected'],
-        ['EU AI Act — Art. 14 Oversight', 'EU-14-B', 'REVIEW', 'HIGH', 'Human-in-the-loop for medical queries'],
-        ['EU AI Act — Art. 15 Robustness', 'EU-15-C', 'PASSED', 'LOW', 'Jailbreak & toxic prompts refused'],
-      ];
+      // Intro text
+      doc.setFillColor(C.textMuted[0], C.textMuted[1], C.textMuted[2]);
+      doc.setFontSize(7);
+      doc.text(
+        'This matrix maps red-teaming findings to NIST AI RMF functions (GOVERN · MAP · MEASURE · MANAGE) ' +
+        'and EU AI Act obligations (Art. 9 Risk Management, Art. 10 Data & PII Governance, Art. 14 Human Oversight, Art. 15 Accuracy, Robustness & Cybersecurity).',
+        MARGIN, y, { maxWidth: CONTENT_WIDTH }
+      );
+      y += 10;
 
       // Table header
       doc.setFillColor(C.dark[0], C.dark[1], C.dark[2]);
@@ -314,9 +600,22 @@ export function EvaluationPanel() {
       doc.text('REVIEW / MITIGATION', MARGIN + 120, y + 1.5, { maxWidth: CONTENT_WIDTH - 122 });
       y += 7;
 
+      const matrix = [
+        ['GOVERN 1.1 — Accountability', 'RT-038', 'IN PROGRESS', 'HIGH', 'Remediate critical findings within 14 days'],
+        ['MAP 2.3 — Context Mapping', 'MAP-014', 'PASSED', 'MEDIUM', 'All attack vectors covered'],
+        ['MEASURE 2.6 — Metrics', 'MES-021', 'PASSED', 'MEDIUM', 'Pass/fail rates logged'],
+        ['MANAGE 4.1 — Response', 'MAN-009', 'REVIEW', 'HIGH', 'Human review before production release'],
+        ['EU AI Act — Art. 9 Risk Mgmt', 'EU-9-A', 'IN PROGRESS', 'HIGH', 'Risk system must document adversarial findings'],
+        ['EU AI Act — Art. 10 Data Gov.', 'EU-10-A', 'PASSED', 'MEDIUM', 'No PII leakage detected'],
+        ['EU AI Act — Art. 14 Oversight', 'EU-14-B', 'REVIEW', 'HIGH', 'Human-in-the-loop for medical queries'],
+        ['EU AI Act — Art. 15 Robustness', 'EU-15-C', 'PASSED', 'LOW', 'Jailbreak & toxic prompts refused'],
+      ];
+
       matrix.forEach((row) => {
-        if (y + 5 > 280) {
+        if (y + 6 > PAGE_HEIGHT - BOTTOM_MARGIN) {
+          drawFooter(doc, pageNum);
           doc.addPage();
+          pageNum++;
           y = MARGIN;
         }
         const statusColor = row[2] === 'PASSED' ? C.emerald : row[2] === 'IN PROGRESS' ? C.amber : C.crimson;
@@ -345,7 +644,8 @@ export function EvaluationPanel() {
 
       y += 8;
 
-      // ── Footer ──
+      /* ───── Footer ── */
+      needSpace(15);
       doc.setDrawColor(C.cyan[0], C.cyan[1], C.cyan[2]);
       doc.setLineWidth(0.5);
       doc.line(MARGIN, y, PAGE_WIDTH - MARGIN, y);
@@ -360,10 +660,7 @@ export function EvaluationPanel() {
       );
       doc.setFillColor(C.cyan[0], C.cyan[1], C.cyan[2]);
       doc.setFontSize(7);
-      doc.text('aisafetycompliance.netlify.app', MARGIN, y + 4, {
-        maxWidth: CONTENT_WIDTH,
-        align: 'center',
-      });
+      doc.textWithLink('aisafetycompliance.netlify.app', MARGIN, y + 4, 'https://aisafetycompliance.netlify.app');
 
       doc.save(`og-safety-${run.runId}.pdf`);
     } catch (err) {

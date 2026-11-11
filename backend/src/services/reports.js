@@ -7,6 +7,7 @@ const MARGIN = 40;
 const PAGE_WIDTH = 595.28;
 const PAGE_HEIGHT = 841.89;
 const CONTENT_WIDTH = PAGE_WIDTH - MARGIN * 2;
+const BOTTOM_MARGIN = 60;
 
 const C = {
   navy: '#01091D',
@@ -19,7 +20,7 @@ const C = {
   emeraldTint: '#ECFDF5',
   roseTint: '#FFF1F2',
   kpiFill: '#F8FAFC',
-  kpiBorder: '#E2E8F0',
+  kpiBorder: '#CBD5E1',
   textDark: '#1E293B',
   textMuted: '#64748B',
   white: '#FFFFFF',
@@ -68,48 +69,49 @@ export async function generateReports(results, reportDir, runId) {
 }
 
 /* ═════════════════════════════════════════════════════════════════════
-   PDF GENERATOR
+   PDF GENERATOR — Sequential Y-coordinate tracking, no overlaps
    ═════════════════════════════════════════════════════════════════════ */
 function generatePDF(results, pdfPath) {
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument({ size: 'A4', margin: MARGIN });
     const stream = fs.createWriteStream(pdfPath);
     let pageNum = 1;
+    let currentY = MARGIN;
 
     doc.pipe(stream);
 
     /* ───── Helpers ───── */
-    function ensureSpace(needed) {
-      if (doc.y + needed > PAGE_HEIGHT - 70) {
+    function needSpace(neededHeight) {
+      if (currentY + neededHeight > PAGE_HEIGHT - BOTTOM_MARGIN) {
         drawFooter(doc, pageNum);
         doc.addPage();
         pageNum++;
-        doc.y = MARGIN;
+        currentY = MARGIN;
       }
     }
 
-    function drawFooter(doc, pn) {
-      const fy = PAGE_HEIGHT - 55;
-      doc.save();
-      doc.strokeStyle = `rgba(0, 229, 255, 0.15)`;
-      doc.lineWidth(1);
-      doc.moveTo(MARGIN, fy).lineTo(PAGE_WIDTH - MARGIN, fy).stroke();
+    function drawFooter(docRef, pn) {
+      const fy = PAGE_HEIGHT - 45;
+      docRef.save();
+      docRef.strokeStyle = `rgba(0, 229, 255, 0.15)`;
+      docRef.lineWidth(1);
+      docRef.moveTo(MARGIN, fy).lineTo(PAGE_WIDTH - MARGIN, fy).stroke();
 
-      doc.fillStyle = C.textMuted;
-      doc.font('Helvetica').fontSize(7);
-      doc.text(
-        'O&G AI Safety & Compliance Pipeline • Automated technical evidence only; not a legal compliance determination. Human review required.',
+      docRef.fillStyle = C.textMuted;
+      docRef.font('Helvetica').fontSize(7);
+      docRef.text(
+        'O&G AI Safety & Compliance Pipeline • Technical assessment evidence only; does not constitute legal compliance or launch approval. Human review required.',
         MARGIN,
         fy + 9,
         { width: CONTENT_WIDTH, align: 'center' }
       );
 
-      doc.fillStyle = C.cyan;
-      doc.font('Helvetica-Bold').fontSize(8);
-      doc.text(
+      docRef.fillStyle = C.cyan;
+      docRef.font('Helvetica-Bold').fontSize(8);
+      docRef.text(
         'aisafetycompliance.netlify.app',
         MARGIN,
-        fy + 20,
+        fy + 18,
         {
           width: CONTENT_WIDTH,
           align: 'center',
@@ -117,57 +119,54 @@ function generatePDF(results, pdfPath) {
         }
       );
 
-      doc.fillStyle = C.textMuted;
-      doc.text(`Page ${pn}`, PAGE_WIDTH - MARGIN - 30, fy + 30, {
+      docRef.fillStyle = C.textMuted;
+      docRef.font('Helvetica').fontSize(7);
+      docRef.text(`Page ${pn}`, PAGE_WIDTH - MARGIN - 30, fy + 28, {
         width: 30,
         align: 'right',
       });
-      doc.restore();
+      docRef.restore();
     }
 
-    function drawVectorLogo(doc, cx, cy, radius) {
+    function drawVectorLogo(docRef, cx, cy, radius) {
       const points = [];
       for (let i = 0; i < 6; i++) {
         const angle = (Math.PI / 3) * i - Math.PI / 2;
         points.push([cx + radius * Math.cos(angle), cy + radius * Math.sin(angle)]);
       }
-      doc.save();
-      doc.fillStyle = C.cyan;
-      doc.beginPath();
-      doc.moveTo(points[0][0], points[0][1]);
-      for (let i = 1; i < 6; i++) doc.lineTo(points[i][0], points[i][1]);
-      doc.closePath().fill();
+      docRef.save();
+      docRef.fillStyle = C.cyan;
+      docRef.beginPath();
+      docRef.moveTo(points[0][0], points[0][1]);
+      for (let i = 1; i < 6; i++) docRef.lineTo(points[i][0], points[i][1]);
+      docRef.closePath().fill();
 
-      doc.fillStyle = C.gold;
-      doc.circle(cx, cy, radius * 0.42).fill();
-      doc.strokeStyle = C.navy;
-      doc.lineWidth(2);
-      doc.circle(cx, cy, radius * 0.42).stroke();
+      docRef.fillStyle = C.gold;
+      docRef.circle(cx, cy, radius * 0.42).fill();
+      docRef.strokeStyle = C.navy;
+      docRef.lineWidth(2);
+      docRef.circle(cx, cy, radius * 0.42).stroke();
 
-      doc.fillStyle = C.navy;
-      doc.font('Helvetica-Bold').fontSize(radius * 0.55);
-      const tw = doc.widthOfString('O&G');
-      doc.text('O&G', cx - tw / 2, cy - radius * 0.24);
-      doc.restore();
+      docRef.fillStyle = C.navy;
+      docRef.font('Helvetica-Bold').fontSize(radius * 0.55);
+      const tw = docRef.widthOfString('O&G');
+      docRef.text('O&G', cx - tw / 2, cy - radius * 0.24);
+      docRef.restore();
     }
 
-    function wrapTextHeight(text, font, size, width) {
+    function measureTextHeight(text, font, size, width) {
       doc.save();
       doc.font(font).fontSize(size);
-      const lines = doc.font.heightOfString? [] : null;
       const words = text.split(' ');
-      let line = '';
       let lineCount = 1;
       let currentWidth = 0;
       const spaceWidth = doc.widthOfString(' ');
       for (const w of words) {
         const wWidth = doc.widthOfString(w);
-        if (currentWidth + wWidth > width && line.length > 0) {
+        if (currentWidth + wWidth > width && lineCount > 0) {
           lineCount++;
           currentWidth = wWidth;
-          line = w;
         } else {
-          line = line ? line + ' ' + w : w;
           currentWidth += wWidth + spaceWidth;
         }
       }
@@ -176,7 +175,17 @@ function generatePDF(results, pdfPath) {
       return h;
     }
 
+    function measureTextHeightArray(lines, font, size) {
+      doc.save();
+      doc.font(font).fontSize(size);
+      const h = lines.length * size * 1.25;
+      doc.restore();
+      return h;
+    }
+
     /* ───── PAGE 1: BRANDED HEADER ───── */
+    needSpace(175);
+
     doc.save();
     doc.fillStyle = C.navy;
     doc.rect(0, 0, PAGE_WIDTH, 175).fill();
@@ -223,10 +232,14 @@ function generatePDF(results, pdfPath) {
     doc.font('Helvetica-Bold').fontSize(7.5);
     doc.text('REPORT METADATA', pillX + 10, pillY + 8);
 
+    const modeLabel = results.mode === 'live' ? 'LIVE' : 'SANDBOX';
+    const modeColor = results.mode === 'live' ? C.emerald : C.cyan;
+
     const metaItems = [
       ['Run ID', results.runId],
       ['Target System', results.target || 'Groq Cloud LLM'],
       ['Model', results.model || 'llama-3.1-8b-instant'],
+      ['Mode', modeLabel],
       ['Generated', new Date(results.generatedAt).toLocaleString()],
     ];
     let my = pillY + 18;
@@ -234,27 +247,27 @@ function generatePDF(results, pdfPath) {
       doc.fillStyle = C.lightGray;
       doc.font('Helvetica').fontSize(6.5);
       doc.text(label, pillX + 10, my);
-      doc.fillStyle = C.white;
+      doc.fillStyle = label === 'Mode' ? modeColor : C.white;
       doc.font('Helvetica-Bold').fontSize(7.5);
       doc.text(value, pillX + 10, my + 8, { width: pillW - 20 });
-      my += 20;
+      my += 17;
     }
     doc.restore();
     doc.restore();
 
-    doc.y = 195;
+    currentY = 195;
 
     /* ───── EXECUTIVE DASHBOARD ───── */
-    ensureSpace(140);
+    needSpace(140);
 
     doc.fillStyle = C.navy;
     doc.font('Helvetica-Bold').fontSize(14);
-    doc.text('EXECUTIVE DASHBOARD', MARGIN, doc.y);
-    doc.y += 6;
+    doc.text('EXECUTIVE DASHBOARD', MARGIN, currentY);
+    currentY += 6;
     doc.strokeStyle = C.cyan;
     doc.lineWidth(2);
-    doc.moveTo(MARGIN, doc.y).lineTo(MARGIN + 60, doc.y).stroke();
-    doc.y += 16;
+    doc.moveTo(MARGIN, currentY).lineTo(MARGIN + 60, currentY).stroke();
+    currentY += 16;
 
     const passRate = results.totalTests > 0
       ? ((results.passedTests / results.totalTests) * 100).toFixed(1)
@@ -263,48 +276,47 @@ function generatePDF(results, pdfPath) {
     const kpis = [
       { label: 'TOTAL PROBES', value: results.totalTests, accent: C.navy, sub: 'Red-teaming tests executed' },
       { label: 'PASSED SAFEGUARDS', value: results.passedTests, accent: C.emerald, sub: 'Tests passed safety assertions' },
-      { label: 'CRITICAL / FAILED', value: results.failedTests, accent: C.crimson, sub: 'Tests requiring remediation' },
-      { label: 'OVERALL PASS RATE', value: passRate + '%', accent: C.cyan, sub: 'Safety boundary effectiveness' },
+      { label: 'FAILED / CRITICAL', value: results.failedTests, accent: C.crimson, sub: 'Tests requiring remediation' },
+      { label: 'SAFETY PASS RATE', value: passRate + '%', accent: C.cyan, sub: 'Safety boundary effectiveness' },
     ];
 
     const kpiW = (CONTENT_WIDTH - 3 * 12) / 4;
     const kpiH = 100;
-    const kpiY = doc.y;
+    const kpiY = currentY;
 
     kpis.forEach((k, i) => {
       const x = MARGIN + i * (kpiW + 12);
-      const cardY = kpiY;
 
       // Card bg
       doc.save();
       doc.fillStyle = C.kpiFill;
-      doc.roundedRect(x, cardY, kpiW, kpiH, 7).fill();
+      doc.roundedRect(x, kpiY, kpiW, kpiH, 7).fill();
       doc.strokeStyle = C.kpiBorder;
       doc.lineWidth(1);
-      doc.roundedRect(x, cardY, kpiW, kpiH, 7).stroke();
+      doc.roundedRect(x, kpiY, kpiW, kpiH, 7).stroke();
 
       // Accent bar
       doc.fillStyle = k.accent;
-      doc.rect(x, cardY, kpiW, 6).fill();
+      doc.rect(x, kpiY, kpiW, 6).fill();
 
       // Value
       doc.fillStyle = C.textDark;
       doc.font('Helvetica-Bold').fontSize(20);
       const vw = doc.widthOfString(k.value);
-      doc.text(k.value, x + (kpiW - vw) / 2, cardY + 18);
+      doc.text(k.value, x + (kpiW - vw) / 2, kpiY + 18);
 
       // Label
       doc.fillStyle = C.textMuted;
       doc.font('Helvetica-Bold').fontSize(8);
-      doc.text(k.label, x + 10, cardY + 52, { width: kpiW - 20, align: 'center' });
+      doc.text(k.label, x + 10, kpiY + 52, { width: kpiW - 20, align: 'center' });
 
       // Sub label
       doc.font('Helvetica').fontSize(6.5).fillStyle(C.lightGray);
-      doc.text(k.sub, x + 10, cardY + 60, { width: kpiW - 20, align: 'center' });
+      doc.text(k.sub, x + 10, kpiY + 60, { width: kpiW - 20, align: 'center' });
 
       // Progress bar for pass rate
-      if (k.label === 'OVERALL PASS RATE') {
-        const barY = cardY + 76;
+      if (k.label === 'SAFETY PASS RATE') {
+        const barY = kpiY + 76;
         const barW = kpiW - 20;
         const barH = 6;
         doc.fillStyle = C.kpiBorder;
@@ -316,18 +328,18 @@ function generatePDF(results, pdfPath) {
       doc.restore();
     });
 
-    doc.y = kpiY + kpiH + 22;
+    currentY = kpiY + kpiH + 22;
 
     /* Category breakdown stacked bars */
-    ensureSpace(110);
+    needSpace(110);
     doc.fillStyle = C.navy;
     doc.font('Helvetica-Bold').fontSize(14);
-    doc.text('RED-TEAM CATEGORY BREAKDOWN', MARGIN, doc.y);
-    doc.y += 6;
+    doc.text('RED-TEAM CATEGORY BREAKDOWN', MARGIN, currentY);
+    currentY += 6;
     doc.strokeStyle = C.cyan;
     doc.lineWidth(2);
-    doc.moveTo(MARGIN, doc.y).lineTo(MARGIN + 78, doc.y).stroke();
-    doc.y += 16;
+    doc.moveTo(MARGIN, currentY).lineTo(MARGIN + 78, currentY).stroke();
+    currentY += 16;
 
     const categories = [
       { key: 'jailbreak', label: 'Jailbreaks & Override', color: C.navy },
@@ -337,7 +349,6 @@ function generatePDF(results, pdfPath) {
       { key: 'dangerous', label: 'Dangerous Advice', color: C.cyan },
     ];
 
-    // Compute per-category pass/fail from results
     const catStats = categories.map((c) => {
       const matching = results.results.filter((r) =>
         (r.category || '').toLowerCase().includes(c.key.split('-')[0]) ||
@@ -355,10 +366,10 @@ function generatePDF(results, pdfPath) {
     const chartW = CONTENT_WIDTH - labelW - 30;
 
     catStats.forEach((c) => {
-      ensureSpace(barH + 16);
+      needSpace(barH + 16);
       doc.fillStyle = C.textDark;
       doc.font('Helvetica-Bold').fontSize(8);
-      doc.text(c.label, MARGIN, doc.y, { width: labelW, align: 'right' });
+      doc.text(c.label, MARGIN, currentY, { width: labelW, align: 'right' });
 
       const barX = MARGIN + labelW + 10;
       const passW = (chartW * c.passed) / c.total;
@@ -366,52 +377,54 @@ function generatePDF(results, pdfPath) {
 
       // Background
       doc.fillStyle = C.kpiBorder;
-      doc.roundedRect(barX, doc.y, chartW, barH, 4).fill();
+      doc.roundedRect(barX, currentY, chartW, barH, 4).fill();
 
       // Pass segment
       if (passW > 0) {
         doc.fillStyle = c.passed > 0 ? C.emerald : C.kpiBorder;
-        doc.roundedRect(barX, doc.y, passW, barH, 4).fill();
+        doc.roundedRect(barX, currentY, passW, barH, 4).fill();
       }
 
       // Fail segment
       if (failW > 0) {
         doc.fillStyle = C.crimson;
-        doc.roundedRect(barX + passW, doc.y, failW, barH, 4).fill();
+        doc.roundedRect(barX + passW, currentY, failW, barH, 4).fill();
       }
 
       // Percentage label
       doc.fillStyle = C.white;
       doc.font('Helvetica-Bold').fontSize(7);
-      doc.text(`${Math.round(c.rate)}%`, barX + chartW / 2 - 15, doc.y + 5, {
+      doc.text(`${Math.round(c.rate)}%`, barX + chartW / 2 - 15, currentY + 5, {
         width: 30,
         align: 'center',
       });
 
-      doc.y += barH + barGap;
+      currentY += barH + barGap;
     });
 
-    doc.y += 8;
+    currentY += 8;
 
     /* ───── INTERACTIVE TABLE OF CONTENTS ───── */
-    ensureSpace(70);
+    needSpace(70);
     doc.fillStyle = C.navy;
     doc.font('Helvetica-Bold').fontSize(14);
-    doc.text('INTERACTIVE TABLE OF CONTENTS', MARGIN, doc.y);
-    doc.y += 6;
+    doc.text('INTERACTIVE TABLE OF CONTENTS', MARGIN, currentY);
+    currentY += 6;
     doc.strokeStyle = C.cyan;
     doc.lineWidth(2);
-    doc.moveTo(MARGIN, doc.y).lineTo(MARGIN + 92, doc.y).stroke();
-    doc.y += 16;
+    doc.moveTo(MARGIN, currentY).lineTo(MARGIN + 92, currentY).stroke();
+    currentY += 16;
 
     const tocItems = [
-      { num: '01', title: 'Executive Summary & Risk Score', dest: 'summary' },
-      { num: '02', title: 'Adversarial Red-Team Evidence Log', dest: 'evidence' },
-      { num: '03', title: 'NIST AI RMF & EU AI Act Compliance Matrix', dest: 'compliance' },
+      { num: '01', title: 'Executive Telemetry & Pass Rate', dest: 'summary' },
+      { num: '02', title: 'Adversarial Red-Team Evidence Cards', dest: 'evidence' },
+      { num: '03', title: 'Workstream B: PII Guardrail Verification', dest: 'pii' },
+      { num: '04', title: 'Workstream C: NIST AI RMF & EU AI Act Matrix', dest: 'compliance' },
     ];
 
     tocItems.forEach((item) => {
-      const itemY = doc.y;
+      needSpace(26);
+      const itemY = currentY;
       // Number badge
       doc.fillStyle = C.cyan;
       doc.roundedRect(MARGIN, itemY, 24, 18, 4).fill();
@@ -434,49 +447,49 @@ function generatePDF(results, pdfPath) {
       doc.font('Helvetica-Bold').fontSize(10);
       doc.text('▸', PAGE_WIDTH - MARGIN - 20, itemY + 1);
 
-      doc.y += 26;
+      currentY += 26;
     });
 
-    doc.y += 10;
+    currentY += 10;
 
     /* ───── PAGE BREAK → EVIDENCE LOG ───── */
-    ensureSpace(40);
+    needSpace(40);
     drawFooter(doc, pageNum);
     doc.addPage();
     pageNum++;
-    doc.y = MARGIN;
+    currentY = MARGIN;
 
     doc.save();
     doc.fillStyle = C.navy;
     doc.font('Helvetica-Bold').fontSize(16);
-    doc.text('[01] EXECUTIVE SUMMARY & RISK SCORE', MARGIN, doc.y, {
+    doc.text('[01] EXECUTIVE TELEMETRY & PASS RATE', MARGIN, currentY, {
       link: '#summary',
     });
-    doc.y += 8;
+    currentY += 8;
     doc.strokeStyle = C.cyan;
     doc.lineWidth(2);
-    doc.moveTo(MARGIN, doc.y).lineTo(MARGIN + 110, doc.y).stroke();
-    doc.y += 18;
+    doc.moveTo(MARGIN, currentY).lineTo(MARGIN + 110, currentY).stroke();
+    currentY += 18;
 
     // Risk score box
-    const riskScore = Math.round(passRate);
+    const riskScore = Math.round(parseFloat(passRate));
     const riskColor = riskScore >= 80 ? C.emerald : riskScore >= 60 ? C.amber : C.crimson;
     const riskLabel = riskScore >= 80 ? 'LOW RISK' : riskScore >= 60 ? 'MODERATE RISK' : 'HIGH RISK';
 
     doc.save();
     doc.fillStyle = C.kpiFill;
-    doc.roundedRect(MARGIN, doc.y, CONTENT_WIDTH, 70, 8).fill();
+    doc.roundedRect(MARGIN, currentY, CONTENT_WIDTH, 70, 8).fill();
     doc.strokeStyle = C.kpiBorder;
     doc.lineWidth(1);
-    doc.roundedRect(MARGIN, doc.y, CONTENT_WIDTH, 70, 8).stroke();
+    doc.roundedRect(MARGIN, currentY, CONTENT_WIDTH, 70, 8).stroke();
 
     doc.fillStyle = riskColor;
     doc.font('Helvetica-Bold').fontSize(34);
-    doc.text(riskScore.toString(), MARGIN + 25, doc.y + 12);
+    doc.text(riskScore.toString(), MARGIN + 25, currentY + 12);
 
     doc.fillStyle = C.textDark;
     doc.font('Helvetica-Bold').fontSize(14);
-    doc.text(riskLabel, MARGIN + 95, doc.y + 16);
+    doc.text(riskLabel, MARGIN + 95, currentY + 16);
 
     doc.fillStyle = C.textMuted;
     doc.font('Helvetica').fontSize(9);
@@ -484,59 +497,60 @@ function generatePDF(results, pdfPath) {
       `Safety boundary effectiveness based on ${results.passedTests}/${results.totalTests} red-teaming probes passed. ` +
       `${results.failedTests} finding(s) require immediate remediation before deployment.`,
       MARGIN + 95,
-      doc.y + 30,
+      currentY + 30,
       { width: CONTENT_WIDTH - 95 - 25 }
     );
     doc.restore();
 
-    doc.y += 86;
+    currentY += 86;
 
-    /* Model info */
+    // Model info section
     doc.fillStyle = C.textMuted;
     doc.font('Helvetica-Bold').fontSize(8);
-    doc.text('EVALUATION CONFIGURATION', MARGIN, doc.y);
-    doc.y += 6;
+    doc.text('EVALUATION CONFIGURATION', MARGIN, currentY);
+    currentY += 6;
     const configRows = [
       ['Target Model', results.model || 'llama-3.1-8b-instant'],
       ['Provider', 'Groq Cloud (api.groq.com)'],
-      ['Test Framework', 'Promptfoo v0.125'],
-      ['Test Categories', '5 / Workstreams A-D'],
+      ['Test Framework', 'Promptfoo'],
+      ['Test Categories', '5 / Workstreams A-E'],
+      ['Mode', results.mode === 'live' ? 'LIVE' : 'SANDBOX'],
       ['Run ID', results.runId],
     ];
     configRows.forEach(([label, value]) => {
       doc.fillStyle = C.textDark;
       doc.font('Helvetica-Bold').fontSize(8.5);
-      doc.text(label, MARGIN, doc.y, { width: 120 });
+      doc.text(label, MARGIN, currentY, { width: 120 });
       doc.fillStyle = C.textMuted;
       doc.font('Helvetica').fontSize(8.5);
-      doc.text(value, MARGIN + 125, doc.y, { width: CONTENT_WIDTH - 125 });
-      doc.y += 14;
+      doc.text(value, MARGIN + 125, currentY, { width: CONTENT_WIDTH - 125 });
+      currentY += 14;
     });
 
     /* ───── EVIDENCE CARDS ───── */
-    doc.y += 16;
-    ensureSpace(40);
+    currentY += 16;
+    needSpace(40);
     doc.fillStyle = C.navy;
     doc.font('Helvetica-Bold').fontSize(16);
-    doc.text('[02] ADVERSARIAL RED-TEAM EVIDENCE LOG', MARGIN, doc.y, {
+    doc.text('[02] ADVERSARIAL RED-TEAM EVIDENCE CARDS', MARGIN, currentY, {
       link: '#evidence',
     });
-    doc.y += 8;
+    currentY += 8;
     doc.strokeStyle = C.cyan;
     doc.lineWidth(2);
-    doc.moveTo(MARGIN, doc.y).lineTo(MARGIN + 100, doc.y).stroke();
-    doc.y += 18;
+    doc.moveTo(MARGIN, currentY).lineTo(MARGIN + 100, currentY).stroke();
+    currentY += 18;
 
     results.results.forEach((r, idx) => {
       const cardPadding = 14;
       const headerH = 24;
-      const promptH = wrapTextHeight(r.prompt, 'Helvetica', 8.5, CONTENT_WIDTH - cardPadding * 2) + 10;
-      const outputH = wrapTextHeight(r.output || '(no output)', 'Helvetica', 8.5, CONTENT_WIDTH - cardPadding * 2) + 10;
+      const promptH = measureTextHeight(r.prompt, 'Helvetica', 8.5, CONTENT_WIDTH - cardPadding * 2) + 10;
+      const outputH = measureTextHeight(r.output || '(no model output captured)', 'Helvetica', 8.5, CONTENT_WIDTH - cardPadding * 2) + 10;
       const cardH = headerH + promptH + outputH + cardPadding * 2 + 14;
 
-      ensureSpace(cardH + 10);
+      needSpace(cardH + 10);
 
-      const cardY = doc.y;
+      const cardY = currentY;
       const statusColor = r.passed ? C.emerald : C.crimson;
       const statusText = r.passed ? 'PASSED' : 'FAILED';
       const sevColor = r.severity === 'HIGH' ? C.crimson : r.severity === 'MODERATE' ? C.amber : C.emerald;
@@ -553,7 +567,6 @@ function generatePDF(results, pdfPath) {
       // Header strip
       doc.fillStyle = C.dark;
       doc.roundedRect(MARGIN, cardY, CONTENT_WIDTH, headerH, 7).fill();
-      // Square bottom corners of header (override rounded bottom)
       doc.rect(MARGIN, cardY + headerH - 7, CONTENT_WIDTH, 7).fill();
 
       // Test ID & title
@@ -566,7 +579,7 @@ function generatePDF(results, pdfPath) {
         width: CONTENT_WIDTH - 45 - 120,
       });
 
-      // Status badge (right side)
+      // Status badge
       const badgeW = 70;
       const badgeX = PAGE_WIDTH - MARGIN - badgeW - 10;
       doc.save();
@@ -577,7 +590,7 @@ function generatePDF(results, pdfPath) {
       doc.text(statusText, badgeX, cardY + 9, { width: badgeW, align: 'center' });
       doc.restore();
 
-      // Severity badge (right side, below status)
+      // Severity badge
       const sevBadgeX = PAGE_WIDTH - MARGIN - 50 - 10;
       doc.save();
       doc.fillStyle = sevColor;
@@ -636,37 +649,37 @@ function generatePDF(results, pdfPath) {
           doc.text(`• ${a.value}`, MARGIN + 18, ay, { width: CONTENT_WIDTH - 36 });
           ay += 10;
         });
-        doc.y = ay + 6;
+        currentY = ay + 6;
       } else {
-        doc.y = assertY + 16;
+        currentY = assertY + 16;
       }
 
       doc.restore();
     });
 
     /* ───── COMPLIANCE MATRIX ───── */
-    doc.y += 8;
-    ensureSpace(120);
+    currentY += 8;
+    needSpace(120);
     doc.fillStyle = C.navy;
     doc.font('Helvetica-Bold').fontSize(16);
-    doc.text('[03] NIST AI RMF & EU AI ACT COMPLIANCE MATRIX', MARGIN, doc.y, {
+    doc.text('[04] WORKSTREAM C: NIST AI RMF & EU AI ACT MATRIX', MARGIN, currentY, {
       link: '#compliance',
     });
-    doc.y += 8;
+    currentY += 8;
     doc.strokeStyle = C.cyan;
     doc.lineWidth(2);
-    doc.moveTo(MARGIN, doc.y).lineTo(MARGIN + 140, doc.y).stroke();
-    doc.y += 18;
+    doc.moveTo(MARGIN, currentY).lineTo(MARGIN + 140, currentY).stroke();
+    currentY += 18;
 
     // Intro text
     doc.fillStyle = C.textMuted;
     doc.font('Helvetica').fontSize(8.5);
     doc.text(
       'This matrix maps red-teaming findings to NIST AI RMF functions (GOVERN · MAP · MEASURE · MANAGE) ' +
-      'and EU AI Act obligations (Art. 10 Data Governance, Art. 14 Human Oversight, Art. 15 Accuracy & Robustness).',
-      MARGIN, doc.y, { width: CONTENT_WIDTH }
+      'and EU AI Act obligations (Art. 9 Risk Management, Art. 10 Data & PII Governance, Art. 14 Human Oversight, Art. 15 Accuracy, Robustness & Cybersecurity).',
+      MARGIN, currentY, { width: CONTENT_WIDTH }
     );
-    doc.y += 16;
+    currentY += 16;
 
     // Table header
     const tableX = MARGIN;
@@ -679,7 +692,7 @@ function generatePDF(results, pdfPath) {
       review: tableW - 110 - 60 - 70 - 60 - 16,
     };
     const rowH = 30;
-    const headerY = doc.y;
+    const headerY = currentY;
 
     doc.save();
     doc.fillStyle = C.dark;
@@ -696,50 +709,57 @@ function generatePDF(results, pdfPath) {
     let ty = headerY + rowH;
     const matrixRows = [
       {
-        control: 'GOVERN — Accountability & Oversight',
+        control: 'GOVERN 1.1 — Accountability & Oversight',
         evidence: 'RT-038',
         status: 'IN PROGRESS',
         severity: 'HIGH',
         review: 'Red-team findings reviewed by safety officer; remediation plan due within 14 days.',
       },
       {
-        control: 'MAP — Context & Stakeholder Mapping',
+        control: 'MAP 2.3 — Context & Stakeholder Mapping',
         evidence: 'MAP-014',
         status: 'PASSED',
         severity: 'MEDIUM',
         review: 'Adversarial test categories cover all identified high-risk interaction vectors.',
       },
       {
-        control: 'MEASURE — Metrics & Monitoring',
+        control: 'MEASURE 2.6 — Metrics & Monitoring',
         evidence: 'MES-021',
         status: 'PASSED',
         severity: 'MEDIUM',
         review: 'Pass/fail rates and severity distribution logged for continuous monitoring.',
       },
       {
-        control: 'MANAGE — Prioritization & Response',
+        control: 'MANAGE 4.1 — Prioritization & Response',
         evidence: 'MAN-009',
         status: 'REVIEW',
         severity: 'HIGH',
         review: 'Critical findings require patch deployment and re-test before production release.',
       },
       {
-        control: 'EU AI Act — Art. 10 Data Governance',
-        evidence: 'EU-10-A',
+        control: 'EU AI Act — Art. 9 Risk Management',
+        evidence: 'EU-9-A',
+        status: 'IN PROGRESS',
+        severity: 'HIGH',
+        review: 'Risk management system must document all adversarial findings and mitigations.',
+      },
+      {
+        control: 'EU AI Act — Art. 10 Data & PII Governance',
+        evidence: 'EU-10-B',
         status: 'PASSED',
         severity: 'MEDIUM',
         review: 'No PII leakage detected in model outputs across sensitive-data probes.',
       },
       {
         control: 'EU AI Act — Art. 14 Human Oversight',
-        evidence: 'EU-14-B',
+        evidence: 'EU-14-C',
         status: 'REVIEW',
         severity: 'HIGH',
-        review: 'Failed dangerous-advice probe requires human-in-the-loop for medical/emergency queries.',
+        review: 'Human-in-the-loop required for medical/emergency query handling.',
       },
       {
         control: 'EU AI Act — Art. 15 Accuracy & Robustness',
-        evidence: 'EU-15-C',
+        evidence: 'EU-15-D',
         status: 'PASSED',
         severity: 'LOW',
         review: 'Model correctly refused jailbreak and toxic-content prompts across all variants.',
@@ -747,7 +767,7 @@ function generatePDF(results, pdfPath) {
     ];
 
     matrixRows.forEach((row, i) => {
-      ensureSpace(rowH + 4);
+      needSpace(rowH + 4);
       const isAlt = i % 2 === 1;
       doc.save();
       doc.fillStyle = isAlt ? C.slate : C.white;
@@ -788,16 +808,16 @@ function generatePDF(results, pdfPath) {
       ty += rowH;
     });
 
-    doc.y = ty + 14;
+    currentY = ty + 14;
 
     /* Footer disclaimer */
-    ensureSpace(50);
+    needSpace(50);
     doc.fillStyle = C.textMuted;
     doc.font('Helvetica-Oblique').fontSize(7.5);
     doc.text(
       'O&G AI Safety & Compliance Pipeline • Automated technical evidence generated via Promptfoo red-teaming. ' +
       'This report is not a legal compliance determination. All findings require qualified human review before deployment decisions.',
-      MARGIN, doc.y, { width: CONTENT_WIDTH, align: 'center', lineBreak: true }
+      MARGIN, currentY, { width: CONTENT_WIDTH, align: 'center', lineBreak: true }
     );
 
     /* Final footer */
