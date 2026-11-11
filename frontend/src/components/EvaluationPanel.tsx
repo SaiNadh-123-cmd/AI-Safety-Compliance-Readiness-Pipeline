@@ -112,6 +112,11 @@ export function EvaluationPanel() {
         muted: [100, 116, 139],
       };
 
+      // Null-safe text helper for jsPDF
+      function safeText(value: unknown): string {
+        return String(value ?? 'N/A');
+      }
+
       let y = MARGIN;
       let pageNum = 1;
 
@@ -127,8 +132,7 @@ export function EvaluationPanel() {
 
       function drawFooter(docRef: jsPDF, pn: number) {
         const fy = PAGE_HEIGHT - 25;
-        docRef.save();
-        docRef.setDrawColor(C.cyan[0], C.cyan[1], C.cyan[2], 0.15);
+        docRef.setDrawColor(C.cyan[0], C.cyan[1], C.cyan[2]);
         docRef.setLineWidth(0.5);
         docRef.line(MARGIN, fy, PAGE_WIDTH - MARGIN, fy);
 
@@ -145,12 +149,7 @@ export function EvaluationPanel() {
         docRef.setFillColor(C.cyan[0], C.cyan[1], C.cyan[2]);
         docRef.setFont('helvetica', 'bold');
         docRef.setFontSize(8);
-        docRef.text(
-          'aisafetycompliance.netlify.app',
-          MARGIN,
-          fy + 12,
-          { maxWidth: CONTENT_WIDTH, align: 'center' }
-        );
+        docRef.textWithLink('aisafetycompliance.netlify.app', MARGIN, fy + 12, 'https://aisafetycompliance.netlify.app');
 
         docRef.setFillColor(C.muted[0], C.muted[1], C.muted[2]);
         docRef.setFontSize(7);
@@ -158,7 +157,6 @@ export function EvaluationPanel() {
           maxWidth: 25,
           align: 'right',
         });
-        docRef.restore();
       }
 
       function drawVectorLogo(cx: number, cy: number, r: number) {
@@ -219,9 +217,9 @@ export function EvaluationPanel() {
       );
 
       // Metadata pill
-      doc.setFillColor(255, 255, 255, 0.08);
+      doc.setFillColor(255, 255, 255);
       doc.roundedRect(PAGE_WIDTH - MARGIN - 50, 8, 50, 18, 2, 2, 'F');
-      doc.setDrawColor(C.cyan[0], C.cyan[1], C.cyan[2], 0.35);
+      doc.setDrawColor(C.cyan[0], C.cyan[1], C.cyan[2]);
       doc.setLineWidth(0.5);
       doc.roundedRect(PAGE_WIDTH - MARGIN - 50, 8, 50, 18, 2, 2, 'S');
       doc.setFillColor(C.cyan[0], C.cyan[1], C.cyan[2]);
@@ -241,10 +239,10 @@ export function EvaluationPanel() {
       metaItems.forEach(([label, value]) => {
         doc.setFillColor(C.lightGray[0], C.lightGray[1], C.lightGray[2]);
         doc.setFontSize(6.5);
-        doc.text(label, PAGE_WIDTH - MARGIN - 48, my);
+        doc.text(safeText(label), PAGE_WIDTH - MARGIN - 48, my);
         doc.setFillColor(label === 'Mode' ? modeColor[0] : C.white[0], label === 'Mode' ? modeColor[1] : C.white[1], label === 'Mode' ? modeColor[2] : C.white[2]);
         doc.setFontSize(7);
-        doc.text(value, PAGE_WIDTH - MARGIN - 48, my + 3, { maxWidth: 44 });
+        doc.text(safeText(value), PAGE_WIDTH - MARGIN - 48, my + 3, { maxWidth: 44 });
         my += 4.5;
       });
 
@@ -494,8 +492,8 @@ export function EvaluationPanel() {
       y += 10;
 
       run.results.forEach((r) => {
-        const promptLines = doc.splitTextToSize(r.prompt, CONTENT_WIDTH - 30, { fontSize: 7 });
-        const outputLines = doc.splitTextToSize(r.output || '(no output)', CONTENT_WIDTH - 30, { fontSize: 7 });
+        const promptLines = doc.splitTextToSize(safeText(r.prompt), CONTENT_WIDTH - 30, { fontSize: 7 });
+        const outputLines = doc.splitTextToSize(safeText(r.output || '(no output)'), CONTENT_WIDTH - 30, { fontSize: 7 });
         const cardHneeded = 10 + promptLines.length * 4 + outputLines.length * 4 + 14;
 
         needSpace(cardHneeded + 5);
@@ -518,9 +516,9 @@ export function EvaluationPanel() {
         doc.setFillColor(C.white[0], C.white[1], C.white[2]);
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(8);
-        doc.text(r.id.toUpperCase(), MARGIN + 4, cardY + 1.5);
+        doc.text(safeText(r.id).toUpperCase(), MARGIN + 4, cardY + 1.5);
         doc.setFillColor(C.cyan[0], C.cyan[1], C.cyan[2]);
-        doc.text(r.description, MARGIN + 18, cardY + 1.5, { maxWidth: CONTENT_WIDTH - 60 });
+        doc.text(safeText(r.description), MARGIN + 18, cardY + 1.5, { maxWidth: CONTENT_WIDTH - 60 });
 
         // Status badge
         doc.setFillColor(statusColor[0], statusColor[1], statusColor[2]);
