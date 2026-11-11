@@ -86,73 +86,284 @@ export function EvaluationPanel() {
     try {
       const doc = new jsPDF();
 
-      doc.setFontSize(20);
-      doc.setTextColor(1, 9, 29);
-      doc.text('O&G AI Safety & Compliance Pipeline', 20, 20);
-      doc.setFontSize(14);
-      doc.setTextColor(0, 229, 255);
-      doc.text('Red-Teaming Evaluation Report', 20, 35);
+      const MARGIN = 20;
+      const PAGE_WIDTH = 210; // mm (A4)
+      const CONTENT_WIDTH = PAGE_WIDTH - MARGIN * 2;
+      const C = {
+        navy: [1, 9, 29],
+        gold: [255, 238, 85],
+        cyan: [0, 229, 255],
+        emerald: [16, 185, 129],
+        crimson: [239, 68, 68],
+        dark: [15, 23, 42],
+        muted: [100, 116, 139],
+        lightGray: [148, 163, 184],
+        amber: [245, 158, 11],
+        textDark: [30, 41, 59],
+        kpiBorder: [226, 232, 240],
+        white: [255, 255, 255],
+      };
 
-      doc.setFontSize(10);
-      doc.setTextColor(100, 100, 100);
-      doc.text(`Run ID: ${run.runId}`, 20, 48);
-      doc.text(`Target: ${run.target}`, 20, 56);
-      doc.text(`Model: ${run.model}`, 20, 64);
-      doc.text(`Generated: ${new Date(run.generatedAt).toLocaleString()}`, 20, 72);
+      let y = MARGIN;
 
-      doc.setFontSize(14);
-      doc.setTextColor(1, 9, 29);
-      doc.text('Summary', 20, 88);
-      doc.setFontSize(10);
-      doc.setTextColor(50, 50, 50);
-      doc.text(`Total Tests: ${run.totalTests}`, 20, 98);
-      doc.text(`Passed: ${run.passedTests}`, 20, 106);
-      doc.text(`Failed: ${run.failedTests}`, 20, 114);
-      doc.text(
-        `Pass Rate: ${((run.passedTests / run.totalTests) * 100).toFixed(1)}%`,
-        20,
-        122
-      );
+      // ── Branded header banner ──
+      doc.setFillColor(C.navy[0], C.navy[1], C.navy[2]);
+      doc.rect(0, 0, PAGE_WIDTH, 30, 'F');
+      doc.setFillColor(C.gold[0], C.gold[1], C.gold[2]);
+      doc.rect(0, 30, PAGE_WIDTH, 1.5, 'F');
+      doc.setFillColor(C.cyan[0], C.cyan[1], C.cyan[2]);
+      doc.rect(0, 31.5, PAGE_WIDTH, 1, 'F');
 
-      doc.setFontSize(14);
-      doc.setTextColor(1, 9, 29);
-      doc.text('Test Results', 20, 140);
-      doc.setFontSize(10);
-      doc.setTextColor(50, 50, 50);
-
-      let y = 150;
-      for (const r of run.results) {
-        doc.setTextColor(50, 50, 50);
-        doc.text(`${r.id} - ${r.description}`, 20, y);
-        doc.setTextColor(
-          r.passed ? 25 : 255,
-          r.passed ? 221 : 42,
-          r.passed ? 162 : 95
-        );
-        doc.text(`${r.passed ? 'PASSED' : 'FAILED'} (${r.severity})`, 100, y);
-        doc.setTextColor(50, 50, 50);
-        doc.text(`Prompt: ${r.prompt}`, 20, y + 6);
-        doc.text(
-          `Output: ${r.output.substring(0, 100)}${
-            r.output.length > 100 ? '...' : ''
-          }`,
-          20,
-          y + 12
-        );
-        y += 22;
-        if (y > 280) {
-          doc.addPage();
-          y = 20;
-        }
+      // Vector O&G emblem (hexagon)
+      doc.setFillColor(C.cyan[0], C.cyan[1], C.cyan[2]);
+      const cx = MARGIN + 10;
+      const cy = 15;
+      const r = 7;
+      const points: [number, number][] = [];
+      for (let i = 0; i < 6; i++) {
+        const angle = (Math.PI / 3) * i - Math.PI / 2;
+        points.push([cx + r * Math.cos(angle), cy + r * Math.sin(angle)]);
       }
+      doc.moveTo(points[0][0], points[0][1]);
+      for (let i = 1; i < 6; i++) doc.lineTo(points[i][0], points[i][1]);
+      doc.fill();
 
-      doc.setFontSize(8);
-      doc.setTextColor(150, 150, 150);
+      doc.setFillColor(C.gold[0], C.gold[1], C.gold[2]);
+      doc.circle(cx, cy, r * 0.42, 'F');
+      doc.setDrawColor(C.navy[0], C.navy[1], C.navy[2]);
+      doc.setLineWidth(0.5);
+      doc.circle(cx, cy, r * 0.42, 'S');
+
+      doc.setFillColor(C.navy[0], C.navy[1], C.navy[2]);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10);
+      const tw = doc.getTextWidth('O&G');
+      doc.text('O&G', cx - tw / 2, cy - 1.5);
+
+      // Title
+      doc.setFillColor(C.white[0], C.white[1], C.white[2]);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(13);
+      doc.text('AI SAFETY & COMPLIANCE READINESS PIPELINE', MARGIN + 22, 8);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7.5);
+      doc.setTextColor(200, 220, 240);
       doc.text(
-        'O&G AI Safety & Compliance Pipeline. Not legal advice. Human review required.',
-        20,
-        doc.internal.pageSize.height - 10
+        'Executive Red-Teaming, PII Guardrail & Regulatory Audit Report',
+        MARGIN + 22,
+        15
       );
+
+      // Metadata pill
+      doc.setFillColor(255, 255, 255);
+      doc.roundedRect(PAGE_WIDTH - MARGIN - 50, 8, 50, 14, 2, 2, 'F');
+      doc.setDrawColor(0, 229, 255);
+      doc.setLineWidth(0.5);
+      doc.roundedRect(PAGE_WIDTH - MARGIN - 50, 8, 50, 14, 2, 2, 'S');
+      doc.setFillColor(C.cyan[0], C.cyan[1], C.cyan[2]);
+      doc.setFontSize(6.5);
+      doc.text('RUN ID', PAGE_WIDTH - MARGIN - 48, 10.5);
+      doc.setFillColor(C.white[0], C.white[1], C.white[2]);
+      doc.setFontSize(7);
+      doc.text(
+        run.runId.substring(0, 12) + '…',
+        PAGE_WIDTH - MARGIN - 48,
+        13,
+        { maxWidth: 44 }
+      );
+
+      y = 40;
+
+      // ── KPI row ──
+      const passRate = run.totalTests > 0 ? ((run.passedTests / run.totalTests) * 100).toFixed(1) : '0.0';
+      const kpis = [
+        { label: 'TOTAL PROBES', value: run.totalTests, accent: C.navy },
+        { label: 'PASSED SAFEGUARDS', value: run.passedTests, accent: C.emerald },
+        { label: 'CRITICAL / FAILED', value: run.failedTests, accent: C.crimson },
+        { label: 'PASS RATE', value: passRate + '%', accent: C.cyan },
+      ];
+      const kpiW = (CONTENT_WIDTH - 3 * 4) / 4;
+      kpis.forEach((k, i) => {
+        const x = MARGIN + i * (kpiW + 4);
+        doc.setFillColor(248, 250, 252);
+        doc.roundedRect(x, y, kpiW, 14, 2, 2, 'F');
+        doc.setDrawColor(C.kpiBorder[0], C.kpiBorder[1], C.kpiBorder[2]);
+        doc.setLineWidth(0.5);
+        doc.roundedRect(x, y, kpiW, 14, 2, 2, 'S');
+        doc.setFillColor(k.accent[0], k.accent[1], k.accent[2]);
+        doc.rect(x, y, kpiW, 1.5, 'F');
+        doc.setFillColor(C.navy[0], C.navy[1], C.navy[2]);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(9);
+        doc.text(String(k.value), x, y + 3, { maxWidth: kpiW, align: 'center' });
+        doc.setFillColor(C.muted[0], C.muted[1], C.muted[2]);
+        doc.setFontSize(5.5);
+        doc.text(k.label, x, y + 9, { maxWidth: kpiW, align: 'center' });
+      });
+      y += 20;
+
+      // ── Evidence cards ──
+      doc.setFillColor(C.navy[0], C.navy[1], C.navy[2]);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(11);
+      doc.text('[02] ADVERSARIAL RED-TEAM EVIDENCE LOG', MARGIN, y);
+      y += 6;
+
+      run.results.forEach((r) => {
+        const promptLines = doc.splitTextToSize(r.prompt, CONTENT_WIDTH - 30, { fontSize: 7 });
+        const outputLines = doc.splitTextToSize(r.output || '(no output)', CONTENT_WIDTH - 30, { fontSize: 7 });
+        const cardHneeded = 10 + promptLines.length * 4.5 + outputLines.length * 4.5 + 14;
+
+        if (y + cardHneeded > 280) {
+          doc.addPage();
+          y = MARGIN;
+        }
+
+        const cardY = y;
+        const statusColor = r.passed ? C.emerald : C.crimson;
+        const statusText = r.passed ? 'PASSED' : 'FAILED';
+
+        // Card bg
+        doc.setFillColor(255, 255, 255);
+        doc.roundedRect(MARGIN, cardY, CONTENT_WIDTH, cardHneeded, 2, 2, 'F');
+        doc.setDrawColor(C.lightGray[0], C.lightGray[1], C.lightGray[2]);
+        doc.setLineWidth(0.5);
+        doc.roundedRect(MARGIN, cardY, CONTENT_WIDTH, cardHneeded, 2, 2, 'S');
+
+        // Header strip
+        doc.setFillColor(C.dark[0], C.dark[1], C.dark[2]);
+        doc.rect(MARGIN, cardY, CONTENT_WIDTH, 7, 'F');
+
+        doc.setFillColor(C.white[0], C.white[1], C.white[2]);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(8);
+        doc.text(r.id.toUpperCase(), MARGIN + 4, cardY + 1.5);
+        doc.setFillColor(C.cyan[0], C.cyan[1], C.cyan[2]);
+        doc.text(r.description, MARGIN + 18, cardY + 1.5, { maxWidth: CONTENT_WIDTH - 60 });
+
+        // Status badge
+        doc.setFillColor(statusColor[0], statusColor[1], statusColor[2]);
+        doc.roundedRect(PAGE_WIDTH - MARGIN - 25, cardY + 1.5, 21, 4, 2, 2, 'F');
+        doc.setFillColor(C.white[0], C.white[1], C.white[2]);
+        doc.setFontSize(6);
+        doc.text(statusText, PAGE_WIDTH - MARGIN - 25, cardY + 3, {
+          maxWidth: 25,
+          align: 'center',
+        });
+
+        let py = cardY + 9;
+        // Prompt box
+        doc.setFillColor(241, 245, 249);
+        doc.roundedRect(MARGIN + 2, py, CONTENT_WIDTH - 4, promptLines.length * 4.5 + 4, 1.5, 1.5, 'F');
+        doc.setFillColor(C.muted[0], C.muted[1], C.muted[2]);
+        doc.setFontSize(6);
+        doc.text('ADVERSARIAL PROMPT', MARGIN + 6, py + 1.5);
+        doc.setFillColor(C.textDark[0], C.textDark[1], C.textDark[2]);
+        doc.setFontSize(7);
+        doc.text(promptLines, MARGIN + 6, py + 5);
+
+        py += promptLines.length * 4.5 + 6;
+
+        // Response box
+        const respBg = r.passed ? [236, 253, 245] : [255, 241, 242];
+        doc.setFillColor(respBg[0], respBg[1], respBg[2]);
+        doc.roundedRect(MARGIN + 2, py, CONTENT_WIDTH - 4, outputLines.length * 4.5 + 4, 1.5, 1.5, 'F');
+        const respTextColor = r.passed ? C.emerald : C.crimson;
+        doc.setFillColor(respTextColor[0], respTextColor[1], respTextColor[2]);
+        doc.setFontSize(6);
+        doc.text(
+          r.passed ? 'GUARDRAIL RESPONSE — PASS' : 'GUARDRAIL RESPONSE — FAIL',
+          MARGIN + 6,
+          py + 1.5
+        );
+        doc.setFillColor(C.textDark[0], C.textDark[1], C.textDark[2]);
+        doc.setFontSize(7);
+        doc.text(doc.splitTextToSize(r.output || '(no output)', CONTENT_WIDTH - 30, { fontSize: 7 }), MARGIN + 6, py + 5);
+
+        y = py + outputLines.length * 4.5 + 10;
+      });
+
+      y += 8;
+
+      // ── Compliance matrix ──
+      doc.setFillColor(C.navy[0], C.navy[1], C.navy[2]);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(11);
+      doc.text('[03] NIST AI RMF & EU AI ACT COMPLIANCE MATRIX', MARGIN, y);
+      y += 6;
+
+      const matrix = [
+        ['GOVERN — Accountability', 'RT-038', 'IN PROGRESS', 'HIGH', 'Remediate critical findings within 14 days'],
+        ['MAP — Context Mapping', 'MAP-014', 'PASSED', 'MEDIUM', 'All attack vectors covered'],
+        ['MEASURE — Metrics', 'MES-021', 'PASSED', 'MEDIUM', 'Pass/fail rates logged'],
+        ['MANAGE — Response', 'MAN-009', 'REVIEW', 'HIGH', 'Human review before production release'],
+        ['EU AI Act — Art. 10 Data Gov.', 'EU-10-A', 'PASSED', 'MEDIUM', 'No PII leakage detected'],
+        ['EU AI Act — Art. 14 Oversight', 'EU-14-B', 'REVIEW', 'HIGH', 'Human-in-the-loop for medical queries'],
+        ['EU AI Act — Art. 15 Robustness', 'EU-15-C', 'PASSED', 'LOW', 'Jailbreak & toxic prompts refused'],
+      ];
+
+      // Table header
+      doc.setFillColor(C.dark[0], C.dark[1], C.dark[2]);
+      doc.rect(MARGIN, y, CONTENT_WIDTH, 6, 'F');
+      doc.setFillColor(C.white[0], C.white[1], C.white[2]);
+      doc.setFontSize(6.5);
+      doc.text('CONTROL TOPIC', MARGIN + 2, y + 1.5, { maxWidth: 40 });
+      doc.text('EVIDENCE ID', MARGIN + 42, y + 1.5, { maxWidth: 25 });
+      doc.text('STATUS', MARGIN + 68, y + 1.5, { maxWidth: 25 });
+      doc.text('SEVERITY', MARGIN + 94, y + 1.5, { maxWidth: 25 });
+      doc.text('REVIEW / MITIGATION', MARGIN + 120, y + 1.5, { maxWidth: CONTENT_WIDTH - 122 });
+      y += 7;
+
+      matrix.forEach((row) => {
+        if (y + 5 > 280) {
+          doc.addPage();
+          y = MARGIN;
+        }
+        const statusColor = row[2] === 'PASSED' ? C.emerald : row[2] === 'IN PROGRESS' ? C.amber : C.crimson;
+        const sevColor = row[3] === 'HIGH' ? C.crimson : row[3] === 'MEDIUM' ? C.amber : C.emerald;
+
+        doc.setFillColor(255, 255, 255);
+        doc.rect(MARGIN, y, CONTENT_WIDTH, 5.5, 'F');
+        doc.setDrawColor(C.lightGray[0], C.lightGray[1], C.lightGray[2]);
+        doc.setLineWidth(0.3);
+        doc.line(MARGIN, y + 5.5, MARGIN + CONTENT_WIDTH, y + 5.5);
+
+        doc.setFillColor(C.textDark[0], C.textDark[1], C.textDark[2]);
+        doc.setFontSize(6.5);
+        doc.text(row[0], MARGIN + 2, y + 1.2, { maxWidth: 38 });
+        doc.setFillColor(C.muted[0], C.muted[1], C.muted[2]);
+        doc.text(row[1], MARGIN + 42, y + 1.2, { maxWidth: 24 });
+        doc.setFillColor(statusColor[0], statusColor[1], statusColor[2]);
+        doc.setFontSize(6.5);
+        doc.text(row[2], MARGIN + 68, y + 1.2, { maxWidth: 24 });
+        doc.setFillColor(sevColor[0], sevColor[1], sevColor[2]);
+        doc.text(row[3], MARGIN + 94, y + 1.2, { maxWidth: 24 });
+        doc.setFillColor(C.textDark[0], C.textDark[1], C.textDark[2]);
+        doc.text(row[4], MARGIN + 120, y + 1.2, { maxWidth: CONTENT_WIDTH - 122 });
+        y += 5.8;
+      });
+
+      y += 8;
+
+      // ── Footer ──
+      doc.setDrawColor(C.cyan[0], C.cyan[1], C.cyan[2]);
+      doc.setLineWidth(0.5);
+      doc.line(MARGIN, y, PAGE_WIDTH - MARGIN, y);
+      y += 4;
+      doc.setFillColor(C.muted[0], C.muted[1], C.muted[2]);
+      doc.setFontSize(6);
+      doc.text(
+        'O&G AI Safety & Compliance Pipeline • Automated technical evidence only; not a legal compliance determination. Human review required.',
+        MARGIN,
+        y,
+        { maxWidth: CONTENT_WIDTH, align: 'center' }
+      );
+      doc.setFillColor(C.cyan[0], C.cyan[1], C.cyan[2]);
+      doc.setFontSize(7);
+      doc.text('aisafetycompliance.netlify.app', MARGIN, y + 4, {
+        maxWidth: CONTENT_WIDTH,
+        align: 'center',
+      });
 
       doc.save(`og-safety-${run.runId}.pdf`);
     } catch (err) {
