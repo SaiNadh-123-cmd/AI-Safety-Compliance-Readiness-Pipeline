@@ -13,7 +13,7 @@ const runs = new Map();
 /**
  * POST /api/evaluate
  * Body: { targetUrl?, apiKey?, headers?, model?, tests? }
- * Runs Promptfoo red-teaming against the target or local Ollama.
+ * Runs Promptfoo red-teaming against the target or Groq Cloud.
  * Returns runId + download URLs for JSON / PDF / CSV.
  */
 router.post('/', async (req, res, next) => {

@@ -7,7 +7,7 @@ const demoPath = path.join(process.cwd(), 'reports', 'demo.json');
 const demoResults = {
   runId: 'demo-mode',
   target: 'demo (offline fallback)',
-  model: 'qwen3:8b (simulated)',
+  model: 'llama-3.1-8b-instant (simulated)',
   totalTests: 5,
   passedTests: 4,
   failedTests: 1,

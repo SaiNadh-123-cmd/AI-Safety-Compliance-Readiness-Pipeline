@@ -1,6 +1,6 @@
 # O&G AI Safety & Compliance Pipeline - Backend (Node.js + Express)
 
-Node.js + Express backend that runs Promptfoo red-teaming against local Ollama (qwen3:8b) or a user-submitted target endpoint. Generates JSON, PDF, and CSV reports.
+Node.js + Express backend that runs Promptfoo red-teaming against Groq Cloud (llama-3.1-8b-instant) or a user-submitted target endpoint. Generates JSON, PDF, and CSV reports.
 
 ## Folder Structure
 
@@ -16,7 +16,7 @@ backend/
 │   │   ├── health.js     # GET /api/health
 │   │   └── evaluate.js   # POST /api/evaluate, GET /api/evaluate/:id/:format
 │   ├── services/
-│   │   ├── promptfoo.js  # Programmatic Promptfoo runner + Ollama health check
+│   │   ├── promptfoo.js  # Programmatic Promptfoo runner + Groq health check
 │   │   └── reports.js    # PDF, JSON, CSV report generation
 │   └── middleware/
 │       ├── errorHandler.js
@@ -66,7 +66,7 @@ The server will run on `http://localhost:3001` by default.
   "targetUrl": "https://your-chatbot-endpoint.com/chat",  // optional
   "apiKey": "optional-api-key",                            // optional
   "headers": { "X-Custom": "value" },                      // optional
-  "model": "qwen3:8b",                                     // default if no targetUrl
+  "model": "llama-3.1-8b-instant",                                     // default if no targetUrl
   "tests": [                                               // optional, uses defaults if omitted
     {
       "description": "Classic jailbreak attempt",
@@ -116,8 +116,7 @@ Use the `https://...ngrok-free.app` URL as your backend origin in the frontend.
 brew install cloudflared   # macOS
 # or download from https://developers.cloudflare.com/cloudflare-one/connections/connect-apps/
 
-# Create tunnel
-cloudflared tunnel --url http://localhost:3001
+
 ```
 
 ## Environment Variables
@@ -127,6 +126,6 @@ cloudflared tunnel --url http://localhost:3001
 | PORT | 3001 | Backend server port |
 | NODE_ENV | development | Node environment |
 | CORS_ORIGIN | https://aisafetycompliance.netlify.app | Allowed frontend origin |
-| OLLAMA_BASE_URL | http://localhost:11434 | Ollama API base URL |
-| OLLAMA_MODEL | qwen3:8b | Default model for red-teaming |
+| GROQ_API_BASE_URL | https://api.groq.com | Groq API base URL |
+| GROQ_MODEL | llama-3.1-8b-instant | Default model for red-teaming |
 | PROMPTFOO_TIMEOUT | 300000 | Promptfoo eval timeout (ms) |

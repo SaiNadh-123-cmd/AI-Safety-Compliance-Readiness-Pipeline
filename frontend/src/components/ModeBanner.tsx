@@ -10,12 +10,12 @@ import { detectMode, type BackendStatus } from '../services/api';
 
 export function ModeBanner() {
   const [status, setStatus] = useState<BackendStatus>({
-    mode: 'demo',
-    online: false,
-    origin: '',
+    mode: 'live',
+    online: true,
+    origin: 'https://og-ai-safety-backend.onrender.com',
   });
   const [checking, setChecking] = useState<'checking' | 'live' | 'demo' | null>(
-    'checking'
+    'live'
   );
   const [forceDemo, setForceDemo] = useState(false);
 
@@ -90,8 +90,7 @@ export function ModeBanner() {
             <WifiOff className="mode-icon" size={14} />
             <span className="mode-label">Demo Mode — Server Offline</span>
             <span className="mode-detail">
-              Showing precomputed results. Start the local backend + tunnel for live
-              evaluation.
+              Showing precomputed results. Backend offline.
             </span>
           </>
         )}

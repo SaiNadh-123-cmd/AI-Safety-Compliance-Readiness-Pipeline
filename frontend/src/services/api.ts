@@ -69,7 +69,7 @@ export interface BackendStatus {
 // Backend origin from Vite env var. Set in Netlify dashboard or local .env.
 // Example: https://abc123.loca.lt  or  http://localhost:3001
 const BACKEND_ORIGIN =
-  import.meta.env.VITE_BACKEND_ORIGIN || '';
+  import.meta.env.VITE_BACKEND_ORIGIN || 'https://og-ai-safety-backend.onrender.com';
 
 const API_BASE = BACKEND_ORIGIN ? `${BACKEND_ORIGIN}/api` : '';
 

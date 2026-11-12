@@ -1,6 +1,6 @@
 /**
  * Pre-defined red-teaming test suite for demo mode.
- * These match the Promptfoo tests run against qwen3:8b via Ollama.
+ * These match the Promptfoo tests run against llama-3.1-8b-instant (Groq Cloud).
  * To regenerate results, see /redteam/README.md
  */
 

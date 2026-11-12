@@ -1,6 +1,6 @@
 /**
  * EvaluationPanel - Red-teaming evaluation form and results viewer (Hybrid Mode).
- * Live mode: submits target URL to backend, runs real Promptfoo + Ollama eval.
+ * Live mode: submits target URL to backend, runs real Promptfoo + Groq eval.
  * Demo mode: shows pre-computed sandbox results.
  */
 import { useState, useCallback, useEffect, useRef } from 'react';
@@ -45,7 +45,7 @@ export function EvaluationPanel({ onEvaluationComplete }: { onEvaluationComplete
     const request: EvaluateRequest = {
       targetUrl: targetUrl || undefined,
       apiKey: apiKey || undefined,
-      model: 'qwen3:8b',
+      model: 'llama-3.1-8b-instant',
       tests: DEMO_TESTS,
     };
 
@@ -115,9 +115,9 @@ export function EvaluationPanel({ onEvaluationComplete }: { onEvaluationComplete
         </div>
         <p>
           {isLive
-            ? 'Live evaluation via Promptfoo + Ollama qwen3:8b through your tunnel.'
-            : 'Pre-computed red-teaming results against qwen3:8b. Start the backend + tunnel for live evaluation.'}
-        </p>
+            ? 'Live evaluation via Promptfoo + Groq llama-3.1-8b-instant.'
+            : 'Pre-computed red-teaming results. Backend offline.'}
+          </p>
       </div>
 
       <div className="eval-card">
@@ -152,7 +152,7 @@ export function EvaluationPanel({ onEvaluationComplete }: { onEvaluationComplete
             />
           </div>
           <div className="form-hint">
-            Leave URL empty to test against the default local Ollama model (qwen3:8b).
+            Leave URL empty to test against the default local model (llama-3.1-8b-instant).
             {isLive
               ? 'Results come from your live backend.'
               : 'Backend offline — showing precomputed sandbox results.'}
