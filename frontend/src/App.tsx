@@ -3,6 +3,8 @@ import { ArrowDown, ArrowUpRight, Check, ChevronRight, CircleDot, Crosshair, Dow
 import StarfieldGalaxyBackground from './components/StarfieldGalaxyBackground';
 import { ModeBanner } from './components/ModeBanner';
 import { EvaluationPanel } from './components/EvaluationPanel';
+import { DashboardPanel } from './components/DashboardPanel';
+import type { EvaluationRun } from './services/api';
 
 type Finding = { id: string; title: string; prompt: string; severity: 'HIGH' | 'MODERATE' | 'LOW'; cause: string; score: number };
 const stages = ['Configure Target', 'Red-Team Probes', 'PII Guardrails', 'Evaluate Results', 'Map Controls', 'Generate Report', 'Remediate & Retest'];
@@ -29,6 +31,8 @@ function App() {
   const [toggles, setToggles] = useState({ input: true, output: true, raw: false });
   const [activeCompliance, setActiveCompliance] = useState('GOVERN');
   const [dossier, setDossier] = useState(false);
+  const [view, setView] = useState<'home' | 'dashboard'>('home');
+  const [run] = useState<EvaluationRun | null>(null);
   const heroRef = useRef<HTMLElement>(null);
   const domeRef = useRef<HTMLElement>(null);
   const chatRef = useRef<HTMLElement>(null);
@@ -51,7 +55,10 @@ function App() {
   function sendMessage(text = draft) { if (!text.trim()) return; setChat((items) => [...items, { role: 'user', text }, { role: 'assistant', text: text.toLowerCase().includes('ignore previous') ? 'Request blocked. Hidden instructions and safety boundaries remain protected.' : 'Payload inspected. Sensitive entities were masked before model processing and the response passed output review.' }]); setDraft(''); setTunnelLive(true); setTimeout(() => setTunnelLive(false), 2200); }
   function exportDossier(kind: string) { const content = kind === 'JSON' ? JSON.stringify({ readiness: 82.4, openFindings: 6, controlCoverage: '47/56' }, null, 2) : '# O&G Executive Readiness Dossier\n\nReadiness index: 82.4 / 100\nControl coverage: 47 / 56'; const link = document.createElement('a'); link.href = URL.createObjectURL(new Blob([content], { type: 'text/plain' })); link.download = `og-dossier.${kind === 'JSON' ? 'json' : 'md'}`; link.click(); }
 
-  return <div className="experience">
+  return view === 'dashboard' && run ? (
+    <DashboardPanel run={run} onBackHome={() => setView('home')} />
+  ) : (
+    <div className="experience">
     <StarfieldGalaxyBackground />
     <canvas id="particle-canvas" />
     <div className="mesh-glow mesh-blue" /><div className="mesh-glow mesh-gold" /><div className="noise" />
@@ -64,7 +71,7 @@ function App() {
 
       <section className="dome-section section-shell" ref={domeRef}><SectionIntro number="01" label="WORKSTREAM A / RED-TEAMING ARENA" title={<>ENTER THE <span>VIRTUAL<br />DEFENSE DOME.</span></>} text="A spatial attack surface for probing the behaviors that matter before they become incidents." /><div className="dome-layout"><div className="dome-stage"><div className="dome-sphere-wrap"><div className="dome-sphere-layer"><div className="dome-rings"><div /><div /><div /></div><div className="dome-core"><div className="sphere-meridian meridian-one" /><div className="sphere-meridian meridian-two" /><Crosshair size={28} /></div></div><div className="dome-core-copy"><span>O&amp;G</span><b>ENTERPRISE</b><small>MODEL V2.4</small></div></div><div className="dome-label label-north"><span>LIVE TARGET</span><b>O&amp;G-ENTERPRISE-ASSISTANT</b></div><div className="dome-label label-east"><span>ENGINE</span><b>PROMPTFOO + GISKARD</b></div><div className="dome-label label-south"><span>ATTACK SURFACE</span><b>05 ACTIVE PORTALS</b></div>{attacks.map((attack, index) => <button key={attack.id} className={`portal portal-${index + 1}`} onClick={() => setSelectedAttack(attack)}><div className={`portal-glyph severity-${attack.severity.toLowerCase()}`}><span>{attack.id}</span></div><span className="portal-title">{attack.title}</span><span className="portal-meter"><i style={{ width: `${attack.score}%` }} /></span><small>{attack.score}% threat signal</small></button>)}</div><div className="dome-side"><div className="side-kicker"><span className="live-dot" /> ARENA TELEMETRY / LIVE</div><h3>Every portal is a<br /><em>question</em> to the model.</h3><p>Click any attack stage to dive into the reproducible prompt, expected boundary, root cause, and remediation state.</p><div className="dome-stats"><div><b>128</b><span>CASES RUN</span></div><div><b>94.2%</b><span>PASS RATE</span></div><div><b>06</b><span>OPEN FINDINGS</span></div></div><button className="button outline" onClick={() => setSelectedAttack(attacks[0])}>Open first attack portal <ChevronRight size={16} /></button></div></div></section>
 
-<EvaluationPanel />
+<EvaluationPanel onEvaluationComplete={() => setView('dashboard')} />
 
       <section className="tunnel-section section-shell" ref={chatRef}><SectionIntro number="02" label="WORKSTREAM B / PRIVACY GUARDRAILS" title={<>THE TWO-SIDED<br /><span>PII LASER TUNNEL.</span></>} text="Watch synthetic payloads get identified, masked, assessed, and returned through a visible protection path." /><div className="chip-row">{piiChips.map(([label, text]) => <button key={label} onClick={() => sendMessage(text)}><span className={label === 'JAILBREAK' ? 'threat' : ''}>{label}</span> {text}</button>)}</div><div className={`tunnel ${tunnelLive ? 'live' : ''}`}><TunnelChamber number="01" title="INPUT PRE-PROCESSOR" icon={LockKeyhole} tone="gold"><div className="payload">My phone number is <mark>[PHONE_NUMBER]</mark></div><small>Presidio · spaCy · Custom regex</small><div className="entity-row"><b>PHONE_NUMBER</b><b>CREDIT_CARD</b></div></TunnelChamber><div className="beam beam-one" /><div className="chat-chamber"><div className="chamber-head"><div><span>02 / MODEL CORE</span><b>LIVE ASSISTANT</b></div><div className="online"><span /> ONLINE</div></div><div className="chat-log">{chat.map((message, index) => <div className={`chat-line ${message.role}`} key={`${message.text}-${index}`}><span>{message.role === 'user' ? 'OP' : <ShieldCheck size={13} />}</span><p>{message.text}</p></div>)}</div><div className="chat-input"><input
               value={draft}
@@ -80,7 +87,8 @@ function App() {
     <footer><div><strong>O&amp;G<span>.</span></strong><p>AI safety &amp; compliance readiness pipeline</p></div><div><span>AUTHORIZED SANDBOX</span><span>ZERO REAL PII</span><span>HUMAN REVIEW REQUIRED</span></div><small>© 2026 O&amp;G Safety Office</small></footer>
     {selectedAttack && <AttackModal attack={selectedAttack} close={() => setSelectedAttack(null)} />}
     {dossier && <Dossier close={() => setDossier(false)} exportDossier={exportDossier} />}
-  </div>;
+  </div>
+  );
 }
 
 function SectionIntro({ number, label, title, text }: { number: string; label: string; title: React.ReactNode; text: string }) { return <div className="section-intro"><div className="section-index">{number}</div><div><div className="section-label">{label}</div><h2>{title}</h2></div><p>{text}</p></div>; }

@@ -12,7 +12,7 @@ import API_CLIENT, {
 import { DEMO_TESTS } from '../data/demo-tests';
 import { exportExecutivePdf } from '../utils/exportExecutivePdf';
 
-export function EvaluationPanel() {
+export function EvaluationPanel({ onEvaluationComplete }: { onEvaluationComplete?: () => void }) {
   const [evaluating, setEvaluating] = useState(false);
   const [run, setRun] = useState<EvaluationRun | null>(null);
   const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -30,6 +30,7 @@ export function EvaluationPanel() {
           clearInterval(interval);
           setEvaluating(false);
           pollIntervalRef.current = null;
+          onEvaluationComplete?.();
         }
       }
     }, 3000);
@@ -54,6 +55,8 @@ export function EvaluationPanel() {
       setRun(started);
       if (started.mode === 'live') {
         startPolling(started.runId);
+      } else {
+        onEvaluationComplete?.();
       }
     } catch (err) {
       console.error('Evaluation failed:', err);
@@ -61,7 +64,7 @@ export function EvaluationPanel() {
     } finally {
       if (!started) setEvaluating(false);
     }
-  }, [targetUrl, apiKey]);
+  }, [targetUrl, apiKey, onEvaluationComplete, startPolling]);
 
   const downloadReport = async (format: 'json' | 'pdf' | 'csv') => {
     if (!run) return;
