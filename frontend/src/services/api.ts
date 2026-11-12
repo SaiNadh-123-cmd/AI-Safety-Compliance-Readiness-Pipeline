@@ -74,7 +74,11 @@ const BACKEND_ORIGIN =
 const API_BASE = BACKEND_ORIGIN ? `${BACKEND_ORIGIN}/api` : '';
 
 // Health check timeout (ms) - short so demo fallback kicks in quickly
-const HEALTH_TIMEOUT = 4000;
+const HEALTH_TIMEOUT = 5000;
+
+// Number of retry attempts for cold-start (Render free tier can take 10-30s to wake)
+const HEALTH_MAX_RETRIES = 3;
+const HEALTH_RETRY_DELAY_MS = 3000;
 
 /* ──────────────────────── Precomputed Demo Data ──────────────────────── */
 
@@ -104,20 +108,31 @@ const MODE_CACHE_TTL = 15000; // Re-check every 15 seconds
 
 async function checkBackendHealth(origin: string): Promise<boolean> {
   if (!origin) return false;
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), HEALTH_TIMEOUT);
 
-  try {
-    const res = await fetch(`${origin}/api/health`, {
-      signal: controller.signal,
-      cache: 'no-store',
-    });
-    return res.ok;
-  } catch {
-    return false;
-  } finally {
-    clearTimeout(timeout);
+  // Retry loop to handle cold-start (Render free tier can take 10-30s to wake)
+  for (let attempt = 0; attempt < HEALTH_MAX_RETRIES; attempt++) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), HEALTH_TIMEOUT);
+
+    try {
+      const res = await fetch(`${origin}/api/health`, {
+        signal: controller.signal,
+        cache: 'no-store',
+      });
+      if (res.ok) return true;
+    } catch {
+      // Ignore, try again
+    } finally {
+      clearTimeout(timeout);
+    }
+
+    // Wait before retry (except on last attempt)
+    if (attempt < HEALTH_MAX_RETRIES - 1) {
+      await new Promise((r) => setTimeout(r, HEALTH_RETRY_DELAY_MS));
+    }
   }
+
+  return false;
 }
 
 export async function detectMode(): Promise<BackendStatus> {

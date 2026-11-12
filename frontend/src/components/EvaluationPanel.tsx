@@ -134,6 +134,7 @@ export function EvaluationPanel() {
               value={targetUrl}
               onChange={(e) => setTargetUrl(e.target.value)}
               disabled={evaluating}
+              className="bg-[#021233] text-white placeholder-slate-400 border border-[#00E5FF]/30 rounded-md px-3 py-2 focus:outline-none focus:border-[#00E5FF]/50"
             />
           </div>
           <div className="form-row">
@@ -144,6 +145,7 @@ export function EvaluationPanel() {
               value={apiKey}
               onChange={(e) => setApiKey(e.target.value)}
               disabled={evaluating}
+              className="bg-[#021233] text-white placeholder-slate-400 border border-[#00E5FF]/30 rounded-md px-3 py-2 focus:outline-none focus:border-[#00E5FF]/50"
             />
           </div>
           <div className="form-hint">
