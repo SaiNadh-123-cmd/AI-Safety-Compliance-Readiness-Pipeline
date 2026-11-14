@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import healthRoutes from './routes/health.js';
 import evaluateRoutes from './routes/evaluate.js';
+import piiChatRoutes from './routes/piiChat.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { notFound } from './middleware/notFound.js';
 
@@ -44,6 +45,7 @@ app.use(express.urlencoded({ extended: true }));
 // ── Routes ───────────────────────────────────────────────────────────────────
 app.use('/api/health', healthRoutes);
 app.use('/api/evaluate', evaluateRoutes);
+app.use('/api/pii-chat', piiChatRoutes);
 
 // ── 404 ──────────────────────────────────────────────────────────────────────
 app.use(notFound);

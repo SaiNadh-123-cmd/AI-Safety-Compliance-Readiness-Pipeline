@@ -238,7 +238,7 @@ function generatePDF(results, pdfPath) {
     const metaItems = [
       ['Run ID', String(results.runId || '')],
       ['Target System', String(results.target || 'Groq Cloud LLM')],
-      ['Model', String(results.model || 'llama-3.1-8b-instant')],
+      ['Model', String(results.model || 'qwen/qwen3.8-27b')],
       ['Mode', modeLabel],
       ['Generated', String(new Date(results.generatedAt).toLocaleString())],
     ];
@@ -509,7 +509,7 @@ function generatePDF(results, pdfPath) {
     doc.text(String('EVALUATION CONFIGURATION'), MARGIN, currentY);
     currentY += 6;
     const configRows = [
-      ['Target Model', String(results.model || 'llama-3.1-8b-instant')],
+      ['Target Model', String(results.model || 'qwen/qwen3.8-27b')],
       ['Provider', String('Groq Cloud (api.groq.com)')],
       ['Test Framework', String('Promptfoo')],
       ['Test Categories', String('5 / Workstreams A-E')],

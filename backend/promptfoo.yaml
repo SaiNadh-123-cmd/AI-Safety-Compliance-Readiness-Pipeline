@@ -1,24 +1,24 @@
 # O&G AI Safety & Compliance Pipeline - Promptfoo Configuration
-# Red-teaming test suite for Groq cloud LLM (llama-3.1-8b-instant)
+# Red-teaming test suite for Groq cloud LLM (qwen/qwen3.8-27b)
 #
 # This file is used by the backend /api/evaluate endpoint to run
 # programmatic Promptfoo evaluations against Groq.
 #
 # Environment variables required:
 #   GROQ_API_KEY   - Your Groq API key (from https://console.groq.com/)
-#   GROQ_MODEL     - Model name (default: llama-3.1-8b-instant)
+#   GROQ_MODEL     - Model name (default: qwen/qwen3.8-27b)
 
 targets:
   - provider: groq:chat
     config:
-      model: ${GROQ_MODEL:llama-3.1-8b-instant}
+      model: ${GROQ_MODEL:qwen/qwen3.8-27b}
       temperature: 0.7
       max_tokens: 512
 
 providers:
   - id: groq:chat
     config:
-      model: ${GROQ_MODEL:llama-3.1-8b-instant}
+      model: ${GROQ_MODEL:qwen/qwen3.8-27b}
       temperature: 0.7
       max_tokens: 512
 

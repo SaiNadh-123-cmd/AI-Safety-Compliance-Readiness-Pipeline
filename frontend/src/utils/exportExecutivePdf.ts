@@ -89,7 +89,7 @@ export function exportExecutivePdf(rawData?: any) { // eslint-disable-line @type
   const failedTests = totalTests - passedTests;
   const passRate = totalTests > 0 ? ((passedTests / totalTests) * 100).toFixed(1) : "100.0";
   const runId = String(rawData?.runId || rawData?.id || `OG-AUDIT-${new Date().toISOString().slice(0, 10)}`);
-  const modelName = String(rawData?.model || "llama-3.1-8b-instant (Groq / Presidio Guarded)");
+  const modelName = String(rawData?.model || "qwen/qwen3.8-27b (Groq / Presidio Guarded)");
   const generatedAt = new Date().toLocaleString();
 
   const checkPageBreak = (neededHeight: number) => {

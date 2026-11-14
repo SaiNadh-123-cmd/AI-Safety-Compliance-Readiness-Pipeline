@@ -1,6 +1,6 @@
 # O&G AI Safety & Compliance Pipeline - Backend (Node.js + Express)
 
-Node.js + Express backend that runs Promptfoo red-teaming against Groq Cloud (llama-3.1-8b-instant) or a user-submitted target endpoint. Generates JSON, PDF, and CSV reports.
+Node.js + Express backend that runs Promptfoo red-teaming against Groq Cloud (qwen/qwen3.8-27b) or a user-submitted target endpoint. Generates JSON, PDF, and CSV reports.
 
 ## Folder Structure
 
@@ -66,7 +66,7 @@ The server will run on `http://localhost:3001` by default.
   "targetUrl": "https://your-chatbot-endpoint.com/chat",  // optional
   "apiKey": "optional-api-key",                            // optional
   "headers": { "X-Custom": "value" },                      // optional
-  "model": "llama-3.1-8b-instant",                                     // default if no targetUrl
+  "model": "qwen/qwen3.8-27b",                                     // default if no targetUrl
   "tests": [                                               // optional, uses defaults if omitted
     {
       "description": "Classic jailbreak attempt",
@@ -127,5 +127,5 @@ brew install cloudflared   # macOS
 | NODE_ENV | development | Node environment |
 | CORS_ORIGIN | https://aisafetycompliance.netlify.app | Allowed frontend origin |
 | GROQ_API_BASE_URL | https://api.groq.com | Groq API base URL |
-| GROQ_MODEL | llama-3.1-8b-instant | Default model for red-teaming |
+| GROQ_MODEL | qwen/qwen3.8-27b | Default model for red-teaming |
 | PROMPTFOO_TIMEOUT | 300000 | Promptfoo eval timeout (ms) |

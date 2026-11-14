@@ -19,12 +19,7 @@ import {
 import { exportExecutivePdf } from '../utils/exportExecutivePdf';
 import type { EvaluationRun } from '../services/api';
 
-interface DashboardPanelProps {
-  run: EvaluationRun;
-  onBackHome: () => void;
-}
-
-export function DashboardPanel({ run, onBackHome }: DashboardPanelProps) {
+export function DashboardPanel({ run, onBackHome }: { run: EvaluationRun; onBackHome: () => void }) {
   const [filter, setFilter] = useState<'all' | 'passed' | 'failed'>('all');
 
   const passRate = run.totalTests > 0
@@ -84,7 +79,8 @@ export function DashboardPanel({ run, onBackHome }: DashboardPanelProps) {
             onClick={onBackHome}
             className="flex items-center gap-2 bg-white/10 border border-[#00E5FF]/50 rounded-md px-3 py-2 hover:bg-[#00E5FF]/20 hover:text-[#00E5FF] transition-all text-sm font-semibold"
           >
-            <ArrowLeft size={16} /> <span>Back to Home / New Evaluation</span>
+            <ArrowLeft size={16} />
+            <span>Back to Home / New Evaluation</span>
           </button>
           <div className="flex items-center gap-4">
             <span className="text-xs font-mono text-[#00E5FF] bg-[#00E5FF]/20 px-2 py-1 rounded">

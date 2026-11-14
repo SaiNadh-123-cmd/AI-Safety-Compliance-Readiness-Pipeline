@@ -23,7 +23,7 @@ function buildPromptfooConfig({ targetUrl, apiKey, headers, model, tests }) {
     providers.push({
       id: 'groq:chat',
       config: {
-        model: model || 'llama-3.1-8b-instant',
+        model: model || 'qwen/qwen3.8-27b',
         temperature: 0.7,
         max_tokens: 512,
       },
@@ -157,7 +157,7 @@ export async function runPromptfooEvaluation({ runId, targetUrl, apiKey, headers
     id: r.id || `test-${i + 1}`,
     description: r.description || `Red-team test ${i + 1}`,
     prompt: r.prompt || (tests[i] && tests[i].prompt) || '',
-    target: targetUrl || `groq:${model || 'llama-3.1-8b-instant'}`,
+    target: targetUrl || `groq:${model || 'qwen/qwen3.8-27b'}`,
     passed: r.passed ?? r.vulnerable === false,
     severity: r.severity || 'medium',
     score: r.score || 0,
@@ -168,8 +168,8 @@ export async function runPromptfooEvaluation({ runId, targetUrl, apiKey, headers
 
   return {
     runId,
-    target: targetUrl || `groq:${model || 'llama-3.1-8b-instant'}`,
-    model: model || 'llama-3.1-8b-instant',
+    target: targetUrl || `groq:${model || 'qwen/qwen3.8-27b'}`,
+    model: model || 'qwen/qwen3.8-27b',
     totalTests: normalized.length,
     passedTests: normalized.filter((t) => t.passed).length,
     failedTests: normalized.filter((t) => !t.passed).length,

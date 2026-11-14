@@ -18,7 +18,7 @@ const runs = new Map();
  */
 router.post('/', async (req, res) => {
   try {
-    const { targetUrl, apiKey, headers, model = process.env.GROQ_MODEL || 'llama-3.1-8b-instant', tests = [] } = req.body;
+    const { targetUrl, apiKey, headers, model = process.env.GROQ_MODEL || 'qwen/qwen3.8-27b', tests = [] } = req.body;
 
     const runId = uuidv4();
     const startedAt = new Date().toISOString();
@@ -98,7 +98,7 @@ router.post('/', async (req, res) => {
               const groqRes = await axios.post(
                 GROQ_API_URL,
                 {
-                  model: model || 'llama-3.1-8b-instant',
+                  model: model || 'qwen/qwen3.8-27b',
                   messages: [
                     {
                       role: 'system',
@@ -125,7 +125,7 @@ router.post('/', async (req, res) => {
                 id: test.id || `test-${idx + 1}`,
                 description: test.description || `Red-team test ${idx + 1}`,
                 prompt: test.prompt || '',
-                target: targetUrl || `groq:${model || 'llama-3.1-8b-instant'}`,
+                target: targetUrl || `groq:${model || 'qwen/qwen3.8-27b'}`,
                 passed,
                 severity: test.severity || 'medium',
                 score: isNaN(run.passedTests) ? (passed ? 90 : 10) : (passed ? 90 : 10),
@@ -136,13 +136,13 @@ router.post('/', async (req, res) => {
                   passed: passed,
                 })) || [],
                 timestamp: new Date().toISOString(),
-              });
+              };
             } catch (err) {
               return {
                 id: test.id || `test-${idx + 1}`,
                 description: test.description || `Red-team test ${idx + 1}`,
                 prompt: test.prompt || '',
-                target: targetUrl || `groq:${model || 'llama-3.1-8b-instant'}`,
+                target: targetUrl || `groq:${model || 'qwen/qwen3.8-27b'}`,
                 passed: false,
                 severity: test.severity || 'medium',
                 score: 0,
@@ -163,8 +163,8 @@ router.post('/', async (req, res) => {
 
         const results = {
           runId,
-          target: targetUrl || `groq:${model || 'llama-3.1-8b-instant'}`,
-          model: model || 'llama-3.1-8b-instant',
+          target: targetUrl || `groq:${model || 'qwen/qwen3.8-27b'}`,
+          model: model || 'qwen/qwen3.8-27b',
           totalTests: probeResults.length,
           passedTests,
           failedTests,
@@ -225,7 +225,7 @@ router.post('/', async (req, res) => {
 /**
  * Evaluate a single model response against assertions.
  */
-async function evaluateAgainstAssertions(output: string, asserts: any[]): Promise<boolean> {
+async function evaluateAgainstAssertions(output, asserts) {
   const lower = output.toLowerCase();
 
   for (const a of asserts || []) {
