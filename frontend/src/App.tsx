@@ -7,8 +7,11 @@ import { useEffect, useRef, useState } from 'react';
 import { ArrowDown, ArrowUpRight, Check, ChevronRight, CircleDot, Crosshair, Download, FileText, Flame, Globe2, LockKeyhole, Menu, MessageSquare, Play, Send, Shield, ShieldCheck, X, Zap } from 'lucide-react';
 import StarfieldGalaxyBackground from './components/StarfieldGalaxyBackground';
 import { ModeBanner } from './components/ModeBanner';
+import { exportExecutivePdf } from './utils/exportExecutivePdf';
 import { EvaluationPanel } from './components/EvaluationPanel';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { DashboardPage } from './components/DashboardPage';
+import type { EvaluationRun, EvaluateResult } from './services/api';
 
 type Finding = { id: string; title: string; prompt: string; severity: 'HIGH' | 'MODERATE' | 'LOW'; cause: string; score: number };
 const stages = ['Configure Target', 'Red-Team Probes', 'PII Guardrails', 'Evaluate Results', 'Map Controls', 'Generate Report', 'Remediate & Retest'];
@@ -123,6 +126,8 @@ export function App() {
   const [toggles, setToggles] = useState({ input: true, output: true, raw: false });
   const [activeCompliance, setActiveCompliance] = useState('GOVERN');
   const [dossier, setDossier] = useState(false);
+  const [currentPage, setCurrentPage] = useState<'home' | 'dashboard'>('home');
+  const [dashboardData, setDashboardData] = useState<EvaluationRun | null>(null);
   const heroRef = useRef<HTMLElement>(null);
   const domeRef = useRef<HTMLElement>(null);
   const chatRef = useRef<HTMLElement>(null);
@@ -258,11 +263,120 @@ export function App() {
     link.href = URL.createObjectURL(new Blob([content], { type: 'text/plain' }));
     link.download = `og-dossier.${kind === 'JSON' ? 'json' : 'md'}`;
     link.click();
-  }
+  };
+
+  /* ──────── DashboardPage download handlers ──────── */
+  const handleDownloadPdf = () => {
+    if (!dashboardData) return;
+    try {
+      exportExecutivePdf(dashboardData);
+    } catch (err) {
+      console.error('PDF generation failed:', err);
+      alert('Failed to generate PDF report.');
+    }
+  };
+
+  const handleDownloadJson = () => {
+    if (!dashboardData) return;
+    try {
+      const blob = new Blob([JSON.stringify(dashboardData, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `og-safety-${String(dashboardData.runId ?? 'report')}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('JSON export failed:', err);
+      alert('Failed to export JSON.');
+    }
+  };
+
+  const handleDownloadCsv = () => {
+    if (!dashboardData) return;
+    try {
+      const results: EvaluateResult[] = Array.isArray(dashboardData?.results) ? dashboardData.results : [];
+      const header = 'id,category,description,prompt,target,passed,severity,score,output,timestamp\n';
+      const rows = results.map((r) =>
+        `"${String(r?.id ?? '')}","${String(r?.category ?? '')}","${String(r?.description ?? '')}","${String(r?.prompt ?? '').replace(/"/g, '""')}","${String(r?.target ?? '')}",${r.passed !== false},"${String(r?.severity ?? '')}",${r.score ?? 0},"${String(r?.output ?? '').replace(/"/g, '""')}","${String(r?.timestamp ?? '')}"`
+      );
+      const blob = new Blob([header + rows.join('\n')], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `og-safety-${String(dashboardData.runId ?? 'report')}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('CSV export failed:', err);
+      alert('Failed to export CSV.');
+    }
+  };
+
+  const handleDownloadMd = () => {
+    if (!dashboardData) return;
+    try {
+      const results: EvaluateResult[] = Array.isArray(dashboardData?.results) ? dashboardData.results : [];
+      const passRate = results.length > 0 ? ((results.filter((r) => r.passed !== false).length / results.length) * 100).toFixed(1) : '0.0';
+      const md = [
+        '# O&G AI Safety & Compliance Report',
+        '',
+        `**Run ID:** ${String(dashboardData.runId ?? '')}`,
+        `**Model:** ${String(dashboardData.model ?? '')}`,
+        `**Target:** ${String(dashboardData.target ?? '')}`,
+        `**Generated:** ${String(dashboardData.generatedAt ?? '')}`,
+        `**Mode:** ${String(dashboardData.mode ?? '')}`,
+        '',
+        '## Summary',
+        `- Total Probes: ${results.length}`,
+        `- Passed Safeguards: ${results.filter((r) => r.passed !== false).length}`,
+        `- Critical / Failed: ${results.length - results.filter((r) => r.passed !== false).length}`,
+        `- Safety Pass Rate: ${passRate}%`,
+        '',
+        '## Test Cases',
+        '',
+        ...results.map((r, i) => [
+          `### Test ${i + 1}: ${String(r?.id ?? '')}`,
+          `- **Category:** ${String(r?.category ?? '')}`,
+          `- **Severity:** ${String(r?.severity ?? '')}`,
+          `- **Status:** ${r.passed !== false ? 'PASSED' : 'FAILED'}`,
+          `- **Prompt:** ${String(r?.prompt ?? '')}`,
+          `- **Response:** ${String(r?.output ?? '')}`,
+          '',
+        ]).flat(),
+      ].join('\n');
+      const blob = new Blob([md], { type: 'text/markdown' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `og-safety-${String(dashboardData.runId ?? 'report')}.md`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Markdown export failed:', err);
+      alert('Failed to export Markdown.');
+    }
+  };
 
   return (
     <ErrorBoundary>
-      <div className="experience">
+      {currentPage === 'dashboard' ? (
+        <DashboardPage
+          data={dashboardData!}
+          onBackHome={() => { setCurrentPage('home'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+          onDownloadPdf={handleDownloadPdf}
+          onDownloadJson={handleDownloadJson}
+          onDownloadCsv={handleDownloadCsv}
+          onDownloadMd={handleDownloadMd}
+        />
+      ) : (
+        <div className="experience">
       <StarfieldGalaxyBackground />
       <canvas id="particle-canvas" />
       <div className="mesh-glow mesh-blue" /><div className="mesh-glow mesh-gold" /><div className="noise" />
@@ -276,13 +390,16 @@ export function App() {
 
         <section className="dome-section section-shell" ref={domeRef}><SectionIntro number="01" label="WORKSTREAM A / RED-TEAMING ARENA" title={<>ENTER THE <span>VIRTUAL<br />DEFENSE DOME.</span></>} text="A spatial attack surface for probing the behaviors that matter before they become incidents." /><div className="dome-layout"><div className="dome-stage"><div className="dome-sphere-wrap"><div className="dome-sphere-layer"><div className="dome-rings"><div /><div /><div /></div><div className="dome-core"><div className="sphere-meridian meridian-one" /><div className="sphere-meridian meridian-two" /><Crosshair size={28} /></div></div><div className="dome-core-copy"><span>O&amp;G</span><b>ENTERPRISE</b><small>MODEL V2.4</small></div></div><div className="dome-label label-north"><span>LIVE TARGET</span><b>O&amp;G-ENTERPRISE-ASSISTANT</b></div><div className="dome-label label-east"><span>ENGINE</span><b>PROMPTFOO + GISKARD</b></div><div className="dome-label label-south"><span>ATTACK SURFACE</span><b>05 ACTIVE PORTALS</b></div>{attacks.map((attack, index) => <button key={attack.id} className={`portal portal-${index + 1}`} onClick={() => setSelectedAttack(attack)}><div className={`portal-glyph severity-${attack.severity.toLowerCase()}`}><span>{attack.id}</span></div><span className="portal-title">{attack.title}</span><span className="portal-meter"><i style={{ width: `${attack.score}%` }} /></span><small>{attack.score}% threat signal</small></button>)}</div><div className="dome-side"><div className="side-kicker"><span className="live-dot" /> ARENA TELEMETRY / LIVE</div><h3>Every portal is a<br /><em>question</em> to the model.</h3><p>Click any attack stage to dive into the reproducible prompt, expected boundary, root cause, and remediation state.</p><div className="dome-stats"><div><b>128</b><span>CASES RUN</span></div><div><b>94.2%</b><span>PASS RATE</span></div><div><b>06</b><span>OPEN FINDINGS</span></div></div><button className="button outline" onClick={() => setSelectedAttack(attacks[0])}>Open first attack portal <ChevronRight size={16} /></button></div></div></section>
 
-        <EvaluationPanel />
+        <EvaluationPanel onEvaluationComplete={(data) => { setDashboardData(data); setCurrentPage('dashboard'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} />
 
         <section className="tunnel-section section-shell" ref={chatRef}><SectionIntro number="02" label="WORKSTREAM B / PRIVACY GUARDRAILS" title={<>THE TWO-SIDED<br /><span>PII LASER TUNNEL.</span></>} text="Watch synthetic payloads get identified, masked, assessed, and returned through a visible protection path." /><div className="chip-row">{piiChips.map(([label, text]) => <button key={label} onClick={() => sendMessage(text)}><span className={label === 'JAILBREAK' ? 'threat' : ''}>{label}</span> {text}</button>)}</div><PipelineStrip pipeline={pipeline} /><div className={`tunnel ${tunnelLive ? 'live' : ''}`}><div className="tunnel-chamber"><div className="chamber-head"><div><span>01 / SHIELD CHAMBER</span><b>INPUT PRE-PROCESSOR</b></div><LockKeyhole size={22} /></div><div className="chamber-body"><div className="payload">{pipeline ? (pipeline.stage === 1 ? highlightPII(pipeline.raw).map((part, i) => (part.hit ? <mark key={i}>{part.v}</mark> : <span key={i}>{part.v}</span>)) : pipeline.masked.split(/(\[[A-Z_]+\])/g).map((tok, i) => (/^\[[A-Z_]+\]$/.test(tok) ? <mark key={i}>{tok}</mark> : <span key={i}>{tok}</span>))) : <>My phone number is <mark>[PHONE_NUMBER]</mark></>}</div><small>Presidio · spaCy · Custom regex{pipeline ? ` · Stage ${pipeline.stage} of 4` : ''}</small><div className="entity-row">{(pipeline && pipeline.entities.length > 0 ? pipeline.entities : ['PHONE_NUMBER', 'CREDIT_CARD']).map((e) => <b key={e}>{e}</b>)}</div></div></div><div className="beam beam-one" /><div className="chat-chamber"><div className="chamber-head"><div><span>02 / MODEL CORE</span><b>LIVE ASSISTANT</b></div><div className="online"><span /> ONLINE</div></div><div className="chat-log">{chat.map((message, index) => <div className={`chat-line ${message.role}`} key={`${message.text}-${index}`}><span>{message.role === 'user' ? 'OP' : <ShieldCheck size={13} />}</span><p>{message.text}{message.badge && <em style={{ display: 'block', marginTop: '7px', fontFamily: 'monospace', fontSize: '10px', letterSpacing: '0.05em', fontStyle: 'normal', color: message.badge.includes('BLOCKED') ? '#F59E0B' : '#19dda2' }}>{message.badge}</em>}</p></div>)}</div><div className="chat-input"><input value={draft} onChange={(e) => setDraft(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && sendMessage()} placeholder="Type a synthetic test prompt..." className="bg-[#021233] text-white placeholder-slate-400 border border-[#00E5FF]/30 rounded-md px-3 py-2 focus:outline-none focus:border-[#00E5FF]/50 w-full" /><button onClick={() => sendMessage()}><Send size={15} /></button></div><div className="chat-toggles"><Toggle label="Input guardrail" active={toggles.input} onClick={() => setToggles({ ...toggles, input: !toggles.input })} /><Toggle label="Output guardrail" active={toggles.output} onClick={() => setToggles({ ...toggles, output: !toggles.output })} /><Toggle label="Raw peek" active={toggles.raw} onClick={() => setToggles({ ...toggles, raw: !toggles.raw })} /></div></div><div className="beam beam-two" /><div className="tunnel-chamber"><div className="chamber-head"><div><span>03 / SHIELD CHAMBER</span><b>OUTPUT POST-PROCESSOR</b></div><Shield size={22} /></div><div className="chamber-body"><div className="payload">{pipeline && pipeline.stage >= 4 ? <>{pipeline.verdict === 'BLOCKED' ? 'Jailbreak refused — guardrail held.' : 'Sanitized response delivered.'}<mark className="cyan-mark"> {pipeline.source}</mark></> : <>Reach Alex at <mark className="cyan-mark">[EMAIL_ADDRESS]</mark></>}</div><small>Response redacted before delivery{pipeline && pipeline.stage >= 4 ? ` · ${pipeline.latencyMs}ms · ${pipeline.maskedCount} entities masked · ${pipeline.verdict}` : ''}</small><div className="quality-meters"><span>FALSE POSITIVE <b>1.3%</b></span><i><em style={{ width: '14%' }} /></i><span>FALSE NEGATIVE <b>0.8%</b></span><i><em style={{ width: '9%' }} /></i><span>LOCALE COVERAGE <b>5 / 5</b></span></div></div></div><div className="beam beam-two" /></div></section>
 
         <div className="diagonal-divider"><div>TECHNICAL EVIDENCE <b>///</b> HUMAN JUDGMENT <b>///</b> DECISION SUPPORT ONLY <b>///</b> TECHNICAL EVIDENCE <b>///</b></div></div>
 
-        <section className="compliance-section section-shell" ref={complianceRef}><div className="legal-glass"><AlertIcon /><div><b>IMPORTANT BOUNDARY</b><p>Automated tests and generated reports support risk assessment and compliance preparation. They do <strong>not</strong> establish that a system is legally compliant or “safe to launch.” Deployment decisions require qualified legal, privacy, security, and product owners.</p></div></div><SectionIntro number="03" label="WORKSTREAM C / COMPLIANCE ARENA" title={<>MAP EVIDENCE.<br /><span>OWN THE DECISION.</span></>} text="A living control landscape for NIST AI RMF and EU AI Act readiness, with human review kept in the loop." /><div className="compliance-grid">{['GOVERN', 'MAP', 'MEASURE', 'MANAGE'].map((name, index) => <button key={name} className={`bento-card ${activeCompliance === name ? 'selected' : ''}`} onClick={() => setActiveCompliance(name)}><span className="bento-number">0{['GOVERN', 'MAP', 'MEASURE', 'MANAGE'].indexOf(name as string) + 1}</span><div className={`bento-ring ${['cyan', 'gold', 'green', 'red'][index]}`}><b>{['88%', '74%', '92%', '61%'][index]}</b></div><span className="bento-name">{name}</span><p>{['Accountability & oversight', 'Context, impacts & stakeholders', 'Metrics, tests & monitoring', 'Prioritization & response'][index]}</p><ArrowUpRight size={17} /></button>)}<button className="bento-eu" onClick={() => setActiveCompliance('EU AI ACT')}> <Globe2 size={24} /><div><span>EU AI ACT READINESS</span><b>Fact-specific obligations routed for human legal review.</b></div><ArrowUpRight size={18} /></button></div><div className="evidence-console"><div className="console-head"><span>CONTROL EVIDENCE / {activeCompliance}</span><span className="console-live"><span /> LIVE</span></div><h3>{activeCompliance === 'EU AI ACT' ? 'Human review queue' : `${activeCompliance} control evidence`}</h3><p>{activeCompliance === 'EU AI ACT' ? 'No automated legal tier declarations. Assumptions and applicability questions are routed to the right owner.' : 'Mapped evidence from the current synthetic evaluation run, ready for an owner to review.'}</p><div className="evidence-console"><div className="evidence"><span className="evidence-icon red"><Check size={13} /></span><div><b>RT-038 / Context & data mapping</b><span>HIGH / IN PROGRESS</span></div><ChevronRight size={15} /></div><div className="evidence"><span className="evidence-icon green"><Check size={13} /></span><div><b>PG-014 / Privacy risk measurement</b><span>LOW / PASSED</span></div><ChevronRight size={15} /></div><div className="evidence"><span className="evidence-icon gold"><Check size={13} /></span><div><b>DOC-021 / Human oversight roles</b><span>REVIEW REQUIRED</span></div><ChevronRight size={15} /></div><div className="evidence"><span className="evidence-icon cyan"><Check size={13} /></span><div><b>EV-009 / Incident response plan</b><span>NOT STARTED</span></div><ChevronRight size={15} /></div></div><button className="button gold full" onClick={() => setDossier(true)}>Open executive dossier <FileText size={15} /></button></div></section></main><footer><div><strong>O&amp;G<span>.</span></strong><p>AI safety &amp; compliance readiness pipeline</p></div><div><span>AUTHORIZED SANDBOX</span><span>ZERO REAL PII</span><span>HUMAN REVIEW REQUIRED</span></div><small>© 2026 O&amp;G Safety Office</small></footer>{selectedAttack && <AttackModal attack={selectedAttack} close={() => setSelectedAttack(null)} />}{dossier && <Dossier close={() => setDossier(false)} exportDossier={exportDossier} />}</div></ErrorBoundary>);
+        <section className="compliance-section section-shell" ref={complianceRef}><div className="legal-glass"><AlertIcon /><div><b>IMPORTANT BOUNDARY</b><p>Automated tests and generated reports support risk assessment and compliance preparation. They do <strong>not</strong> establish that a system is legally compliant or “safe to launch.” Deployment decisions require qualified legal, privacy, security, and product owners.</p></div></div><SectionIntro number="03" label="WORKSTREAM C / COMPLIANCE ARENA" title={<>MAP EVIDENCE.<br /><span>OWN THE DECISION.</span></>} text="A living control landscape for NIST AI RMF and EU AI Act readiness, with human review kept in the loop." /><div className="compliance-grid">{['GOVERN', 'MAP', 'MEASURE', 'MANAGE'].map((name, index) => <button key={name} className={`bento-card ${activeCompliance === name ? 'selected' : ''}`} onClick={() => setActiveCompliance(name)}><span className="bento-number">0{['GOVERN', 'MAP', 'MEASURE', 'MANAGE'].indexOf(name as string) + 1}</span><div className={`bento-ring ${['cyan', 'gold', 'green', 'red'][index]}`}><b>{['88%', '74%', '92%', '61%'][index]}</b></div><span className="bento-name">{name}</span><p>{['Accountability & oversight', 'Context, impacts & stakeholders', 'Metrics, tests & monitoring', 'Prioritization & response'][index]}</p><ArrowUpRight size={17} /></button>)}<button className="bento-eu" onClick={() => setActiveCompliance('EU AI ACT')}> <Globe2 size={24} /><div><span>EU AI ACT READINESS</span><b>Fact-specific obligations routed for human legal review.</b></div><ArrowUpRight size={18} /></button></div><div className="evidence-console"><div className="console-head"><span>CONTROL EVIDENCE / {activeCompliance}</span><span className="console-live"><span /> LIVE</span></div><h3>{activeCompliance === 'EU AI ACT' ? 'Human review queue' : `${activeCompliance} control evidence`}</h3><p>{activeCompliance === 'EU AI ACT' ? 'No automated legal tier declarations. Assumptions and applicability questions are routed to the right owner.' : 'Mapped evidence from the current synthetic evaluation run, ready for an owner to review.'}</p><div className="evidence-console"><div className="evidence"><span className="evidence-icon red"><Check size={13} /></span><div><b>RT-038 / Context & data mapping</b><span>HIGH / IN PROGRESS</span></div><ChevronRight size={15} /></div><div className="evidence"><span className="evidence-icon green"><Check size={13} /></span><div><b>PG-014 / Privacy risk measurement</b><span>LOW / PASSED</span></div><ChevronRight size={15} /></div><div className="evidence"><span className="evidence-icon gold"><Check size={13} /></span><div><b>DOC-021 / Human oversight roles</b><span>REVIEW REQUIRED</span></div><ChevronRight size={15} /></div><div className="evidence"><span className="evidence-icon cyan"><Check size={13} /></span><div><b>EV-009 / Incident response plan</b><span>NOT STARTED</span></div><ChevronRight size={15} /></div></div><button className="button gold full" onClick={() => setDossier(true)}>Open executive dossier <FileText size={15} /></button></div></section></main><footer><div><strong>O&amp;G<span>.</span></strong><p>AI safety &amp; compliance readiness pipeline</p></div><div><span>AUTHORIZED SANDBOX</span><span>ZERO REAL PII</span><span>HUMAN REVIEW REQUIRED</span></div><small>© 2026 O&amp;G Safety Office</small></footer>{selectedAttack && <AttackModal attack={selectedAttack} close={() => setSelectedAttack(null)} />}{dossier && <Dossier close={() => setDossier(false)} exportDossier={exportDossier} />}</div>
+      )}
+    </ErrorBoundary>
+  );
 }
 
 function SectionIntro({ number, label, title, text }: { number: string; label: string; title: React.ReactNode; text: string }) {
