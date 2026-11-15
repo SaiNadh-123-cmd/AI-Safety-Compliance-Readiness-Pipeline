@@ -24,3 +24,50 @@
 .evaluation-section{padding:70px 20px;max-width:1200px;margin:0 auto}.eval-card{background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:10px;padding:28px;backdrop-filter:blur(10px)}.eval-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}.eval-header h3{font:700 16px var(--display);color:#f4f8fc;margin:0}.mode-pill{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:20px;font:600 8px var(--mono);text-transform:uppercase}.mode-pill.demo{background:rgba(255,238,85,.1);color:var(--gold);border:1px solid rgba(255,238,85,.3)}.eval-form{display:flex;flex-direction:column;gap:12px;margin-bottom:24px}.form-row{display:flex;flex-direction:column;gap:6px}.form-row label{font:500 8px var(--mono);color:#7595b4;text-transform:uppercase;letter-spacing:.05em}.readonly-input{background:rgba(0,0,0,.2);border:1px solid var(--line);border-radius:5px;padding:10px 12px;color:#7595b4;font:500 9px var(--mono);cursor:default}.form-hint{font-size:7px;color:#7595b4;margin-top:-4px;margin-bottom:8px}.eval-button{display:inline-flex;align-items:center;gap:8px;background:linear-gradient(135deg,var(--cyan),#00b8cc);border:none;border-radius:5px;padding:12px 20px;color:#01091d;font:700 9px var(--mono);cursor:pointer;text-transform:uppercase;letter-spacing:.1em}.eval-button:hover{filter:brightness(1.1)}.eval-button:disabled{opacity:.6;cursor:not-allowed}.eval-button.running{background:linear-gradient(135deg,var(--gold),#ddaa00);color:#01091d}.eval-results{background:rgba(0,0,0,.2);border:1px solid var(--line);border-radius:7px;padding:20px;margin-top:20px}.results-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}.results-header h3{font:700 14px var(--display);color:#f4f8fc;margin:0}.close-results{background:none;border:none;color:#7595b4;cursor:pointer;padding:4px}.close-results:hover{color:var(--cyan)}.results-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}.stat{background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:5px;padding:12px;text-align:center}.stat-value{display:block;font:700 16px var(--mono);color:#f4f8fc}.stat-label{display:block;font-size:7px;color:#7595b4;text-transform:uppercase;margin-top:4px}.results-list{display:flex;flex-direction:column;gap:10px;margin-bottom:16px;max-height:300px;overflow-y:auto}.result-item{display:flex;flex-direction:column;gap:6px;padding:10px;border:1px solid var(--line);border-radius:5px;background:rgba(255,255,255,.02)}.result-item.failed{border-color:rgba(255,42,95,.3);background:rgba(255,42,95,.02)}.result-item.passed{border-color:rgba(25,221,162,.3)}.result-head{display:flex;align-items:center;justify-content:space-between;gap:10px}.result-id{font:600 8px var(--mono);color:#7595b4}.result-title{font:600 9px var(--mono);color:#f4f8fc;flex:1;margin:0 10px}.result-badge{font:600 7px var(--mono);padding:2px 6px;border-radius:3px;text-transform:uppercase}.result-badge.pass{background:rgba(25,221,162,.2);color:var(--green)}.result-badge.fail{background:rgba(255,42,95,.2);color:var(--red)}.result-prompt{font-size:8px;color:#a8c0d5;margin:0 0 6px 0;overflow-wrap:anywhere}.result-output{display:flex;align-items:center;gap:6px;font-size:7px;color:#83a2c1;background:rgba(0,0,0,.2);padding:8px;border-radius:3px;overflow-wrap:anywhere}.results-downloads{border-top:1px solid var(--line);padding-top:16px}.results-downloads h4{font:600 9px var(--mono);color:#7595b4;text-transform:uppercase;margin:0 0 10px 0}.download-buttons{display:flex;gap:8px;flex-wrap:wrap}.download-btn{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:4px;padding:8px 12px;color:#b8d8ee;font:500 8px var(--mono);cursor:pointer}.download-btn:hover{border-color:var(--cyan);color:var(--cyan)}.download-hint{font-size:7px;color:#7595b4;margin-top:8px}
 
 @media(max-width:700px){.evaluation-section{padding:50px 16px}.results-summary{grid-template-columns:repeat(2,1fr)}.eval-header{flex-direction:column;gap:10px;align-items:flex-start}}
+
+/* ═════════════════════════════════════════════════════════════════════
+   AWWWARDS-GRADE CARD PHYSICS & CYBER ANIMATIONS
+   ═════════════════════════════════════════════════════════════════════ */
+.cyber-card {
+  transition: all 0.45s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  position: relative;
+  overflow: hidden;
+}
+.cyber-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #00E5FF, transparent);
+  transition: all 0.6s ease;
+  pointer-events: none;
+}
+.cyber-card:hover {
+  transform: translateY(-8px) scale(1.015) !important;
+  border-color: #00E5FF !important;
+  box-shadow: 0 20px 50px rgba(0, 229, 255, 0.22) !important;
+}
+.cyber-card:hover::before {
+  left: 100%;
+}
+
+@keyframes shake {
+  10%, 90% { transform: translate3d(-2px, 0, 0); }
+  20%, 80% { transform: translate3d(3px, 0, 0); }
+  30%, 50%, 70% { transform: translate3d(-6px, 0, 0); }
+  40%, 60% { transform: translate3d(6px, 0, 0); }
+}
+.animate-shake {
+  animation: shake 0.45s cubic-bezier(.36, .07, .19, .97) both;
+}
+
+@keyframes radarSweep {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+.animate-radar {
+  transform-origin: 50px 50px;
+  animation: radarSweep 2.8s linear infinite;
+}

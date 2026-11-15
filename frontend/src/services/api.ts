@@ -35,6 +35,8 @@ export interface EvaluateResult {
   passed: boolean;
   severity: 'high' | 'medium' | 'low';
   score: number;
+  latencyMs?: number;
+  tokens?: number;
   output: string;
   assertions: Array<{ type: string; value: string; passed: boolean }>;
   timestamp: string;
