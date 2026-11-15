@@ -3,14 +3,11 @@
  * Routes between frontend experience (landing + live chat sandbox) and
  * dashboard view after evaluation completes.
  */
-import { motion } from 'framer-motion';
 import { useEffect, useRef, useState } from 'react';
 import { ArrowDown, ArrowUpRight, Check, ChevronRight, CircleDot, Crosshair, Download, FileText, Flame, Globe2, LockKeyhole, Menu, MessageSquare, Play, Send, Shield, ShieldCheck, X, Zap } from 'lucide-react';
 import StarfieldGalaxyBackground from './components/StarfieldGalaxyBackground';
 import { ModeBanner } from './components/ModeBanner';
 import { EvaluationPanel } from './components/EvaluationPanel';
-import { DashboardPanel } from './components/DashboardPanel';
-import type { EvaluationRun } from './services/api';
 
 type Finding = { id: string; title: string; prompt: string; severity: 'HIGH' | 'MODERATE' | 'LOW'; cause: string; score: number };
 const stages = ['Configure Target', 'Red-Team Probes', 'PII Guardrails', 'Evaluate Results', 'Map Controls', 'Generate Report', 'Remediate & Retest'];
@@ -125,8 +122,6 @@ export function App() {
   const [toggles, setToggles] = useState({ input: true, output: true, raw: false });
   const [activeCompliance, setActiveCompliance] = useState('GOVERN');
   const [dossier, setDossier] = useState(false);
-  const [activeScreen, setActiveScreen] = useState<'evaluate' | 'dashboard'>('evaluate');
-  const [evalResults, setEvalResults] = useState<EvaluationRun | null>(null);
   const heroRef = useRef<HTMLElement>(null);
   const domeRef = useRef<HTMLElement>(null);
   const chatRef = useRef<HTMLElement>(null);
@@ -264,23 +259,6 @@ export function App() {
     link.click();
   }
 
-  if (activeScreen === 'dashboard' && evalResults) {
-    return (
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        transition={{ duration: 0.25 }}
-        className="fixed inset-0 z-50 bg-[#01091D] text-white overflow-hidden"
-      >
-        <DashboardPanel
-          run={evalResults}
-          onBackHome={() => { setActiveScreen('evaluate'); setEvalResults(null); window.scrollTo(0, 0); }}
-        />
-      </motion.div>
-    );
-  }
-
   return (
     <div className="experience">
       <StarfieldGalaxyBackground />
@@ -296,7 +274,7 @@ export function App() {
 
         <section className="dome-section section-shell" ref={domeRef}><SectionIntro number="01" label="WORKSTREAM A / RED-TEAMING ARENA" title={<>ENTER THE <span>VIRTUAL<br />DEFENSE DOME.</span></>} text="A spatial attack surface for probing the behaviors that matter before they become incidents." /><div className="dome-layout"><div className="dome-stage"><div className="dome-sphere-wrap"><div className="dome-sphere-layer"><div className="dome-rings"><div /><div /><div /></div><div className="dome-core"><div className="sphere-meridian meridian-one" /><div className="sphere-meridian meridian-two" /><Crosshair size={28} /></div></div><div className="dome-core-copy"><span>O&amp;G</span><b>ENTERPRISE</b><small>MODEL V2.4</small></div></div><div className="dome-label label-north"><span>LIVE TARGET</span><b>O&amp;G-ENTERPRISE-ASSISTANT</b></div><div className="dome-label label-east"><span>ENGINE</span><b>PROMPTFOO + GISKARD</b></div><div className="dome-label label-south"><span>ATTACK SURFACE</span><b>05 ACTIVE PORTALS</b></div>{attacks.map((attack, index) => <button key={attack.id} className={`portal portal-${index + 1}`} onClick={() => setSelectedAttack(attack)}><div className={`portal-glyph severity-${attack.severity.toLowerCase()}`}><span>{attack.id}</span></div><span className="portal-title">{attack.title}</span><span className="portal-meter"><i style={{ width: `${attack.score}%` }} /></span><small>{attack.score}% threat signal</small></button>)}</div><div className="dome-side"><div className="side-kicker"><span className="live-dot" /> ARENA TELEMETRY / LIVE</div><h3>Every portal is a<br /><em>question</em> to the model.</h3><p>Click any attack stage to dive into the reproducible prompt, expected boundary, root cause, and remediation state.</p><div className="dome-stats"><div><b>128</b><span>CASES RUN</span></div><div><b>94.2%</b><span>PASS RATE</span></div><div><b>06</b><span>OPEN FINDINGS</span></div></div><button className="button outline" onClick={() => setSelectedAttack(attacks[0])}>Open first attack portal <ChevronRight size={16} /></button></div></div></section>
 
-        <EvaluationPanel onEvaluationComplete={(r) => { setEvalResults(r); setActiveScreen('dashboard'); }} />
+        <EvaluationPanel />
 
         <section className="tunnel-section section-shell" ref={chatRef}><SectionIntro number="02" label="WORKSTREAM B / PRIVACY GUARDRAILS" title={<>THE TWO-SIDED<br /><span>PII LASER TUNNEL.</span></>} text="Watch synthetic payloads get identified, masked, assessed, and returned through a visible protection path." /><div className="chip-row">{piiChips.map(([label, text]) => <button key={label} onClick={() => sendMessage(text)}><span className={label === 'JAILBREAK' ? 'threat' : ''}>{label}</span> {text}</button>)}</div><PipelineStrip pipeline={pipeline} /><div className={`tunnel ${tunnelLive ? 'live' : ''}`}><div className="tunnel-chamber"><div className="chamber-head"><div><span>01 / SHIELD CHAMBER</span><b>INPUT PRE-PROCESSOR</b></div><LockKeyhole size={22} /></div><div className="chamber-body"><div className="payload">{pipeline ? (pipeline.stage === 1 ? highlightPII(pipeline.raw).map((part, i) => (part.hit ? <mark key={i}>{part.v}</mark> : <span key={i}>{part.v}</span>)) : pipeline.masked.split(/(\[[A-Z_]+\])/g).map((tok, i) => (/^\[[A-Z_]+\]$/.test(tok) ? <mark key={i}>{tok}</mark> : <span key={i}>{tok}</span>))) : <>My phone number is <mark>[PHONE_NUMBER]</mark></>}</div><small>Presidio · spaCy · Custom regex{pipeline ? ` · Stage ${pipeline.stage} of 4` : ''}</small><div className="entity-row">{(pipeline && pipeline.entities.length > 0 ? pipeline.entities : ['PHONE_NUMBER', 'CREDIT_CARD']).map((e) => <b key={e}>{e}</b>)}</div></div></div><div className="beam beam-one" /><div className="chat-chamber"><div className="chamber-head"><div><span>02 / MODEL CORE</span><b>LIVE ASSISTANT</b></div><div className="online"><span /> ONLINE</div></div><div className="chat-log">{chat.map((message, index) => <div className={`chat-line ${message.role}`} key={`${message.text}-${index}`}><span>{message.role === 'user' ? 'OP' : <ShieldCheck size={13} />}</span><p>{message.text}{message.badge && <em style={{ display: 'block', marginTop: '7px', fontFamily: 'monospace', fontSize: '10px', letterSpacing: '0.05em', fontStyle: 'normal', color: message.badge.includes('BLOCKED') ? '#F59E0B' : '#19dda2' }}>{message.badge}</em>}</p></div>)}</div><div className="chat-input"><input value={draft} onChange={(e) => setDraft(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && sendMessage()} placeholder="Type a synthetic test prompt..." className="bg-[#021233] text-white placeholder-slate-400 border border-[#00E5FF]/30 rounded-md px-3 py-2 focus:outline-none focus:border-[#00E5FF]/50 w-full" /><button onClick={() => sendMessage()}><Send size={15} /></button></div><div className="chat-toggles"><Toggle label="Input guardrail" active={toggles.input} onClick={() => setToggles({ ...toggles, input: !toggles.input })} /><Toggle label="Output guardrail" active={toggles.output} onClick={() => setToggles({ ...toggles, output: !toggles.output })} /><Toggle label="Raw peek" active={toggles.raw} onClick={() => setToggles({ ...toggles, raw: !toggles.raw })} /></div></div><div className="beam beam-two" /><div className="tunnel-chamber"><div className="chamber-head"><div><span>03 / SHIELD CHAMBER</span><b>OUTPUT POST-PROCESSOR</b></div><Shield size={22} /></div><div className="chamber-body"><div className="payload">{pipeline && pipeline.stage >= 4 ? <>{pipeline.verdict === 'BLOCKED' ? 'Jailbreak refused — guardrail held.' : 'Sanitized response delivered.'}<mark className="cyan-mark"> {pipeline.source}</mark></> : <>Reach Alex at <mark className="cyan-mark">[EMAIL_ADDRESS]</mark></>}</div><small>Response redacted before delivery{pipeline && pipeline.stage >= 4 ? ` · ${pipeline.latencyMs}ms · ${pipeline.maskedCount} entities masked · ${pipeline.verdict}` : ''}</small><div className="quality-meters"><span>FALSE POSITIVE <b>1.3%</b></span><i><em style={{ width: '14%' }} /></i><span>FALSE NEGATIVE <b>0.8%</b></span><i><em style={{ width: '9%' }} /></i><span>LOCALE COVERAGE <b>5 / 5</b></span></div></div></div><div className="beam beam-two" /></div></section>
 

@@ -60,15 +60,15 @@ export function DashboardPanel({ run, onBackHome }: { run: EvaluationRun; onBack
   });
 
   return (
-    <section className="dashboard-shell min-h-screen bg-[#01091D] text-white">
-      {/* Sticky Back to Home Button */}
+    <section className="dashboard-shell bg-[#01091D] text-white">
+      {/* Sticky Back to Top / Configure Target Button */}
       <div className="fixed bottom-6 right-6 z-50">
         <button
           onClick={onBackHome}
           className="flex items-center gap-2 bg-[#01091D]/90 backdrop-blur-md border border-[#00E5FF]/50 text-white hover:bg-[#00E5FF] hover:text-[#01091D] shadow-lg transition-all duration-300 px-4 py-3 rounded-full"
         >
           <ArrowLeft size={16} />
-          <span className="text-sm font-bold tracking-wider">Back to Home</span>
+          <span className="text-sm font-bold tracking-wider">↑ Back to Top / Configure Target</span>
         </button>
       </div>
 

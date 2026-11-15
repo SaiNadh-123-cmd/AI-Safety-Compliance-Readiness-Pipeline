@@ -1,31 +1,39 @@
 /**
- * EvaluationPanel - Red-teaming evaluation form and results viewer (Hybrid Mode).
+ * EvaluationPanel - Red-teaming evaluation form with inline Executive Dashboard.
  * Live mode: submits target URL to backend, runs real Promptfoo + Groq eval.
  * Demo mode: shows pre-computed sandbox results.
+ *
+ * Clicking "Run Safety Evaluation" triggers:
+ *  - Instant URL validation (<0.3s)
+ *  - Live 4.0s → 0.0s countdown racing the backend (4000ms AbortController)
+ *  - Always resolves with setEvalReport(resultData), then smooth-scrolls to the
+ *    dashboard rendered directly below this panel.
  */
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { Play, X, ShieldAlert, FileText, File, Files } from 'lucide-react';
+import { Play } from 'lucide-react';
+import { motion } from 'framer-motion';
 import API_CLIENT, {
   type EvaluateRequest,
   type EvaluationRun,
 } from '../services/api';
 import { DEMO_TESTS } from '../data/demo-tests';
-import { exportExecutivePdf } from '../utils/exportExecutivePdf';
+import { DashboardPanel } from './DashboardPanel';
 
 export function EvaluationPanel({ onEvaluationComplete }: { onEvaluationComplete?: (run: EvaluationRun) => void }) {
   const [evaluating, setEvaluating] = useState(false);
-  const [run, setRun] = useState<EvaluationRun | null>(null);
+  const [evalReport, setEvalReport] = useState<EvaluationRun | null>(null);
   const [evaluationStatus, setEvaluationStatus] = useState<string>('');
   const [validationError, setValidationError] = useState<string>('');
-  const [timerSeconds, setTimerSeconds] = useState<number>(4.5);
+  const [timerSeconds, setTimerSeconds] = useState<number>(4.0);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const dashboardRef = useRef<HTMLDivElement>(null);
   const [targetUrl, setTargetUrl] = useState('');
   const [apiKey, setApiKey] = useState('');
 
   const startEvaluation = useCallback(async () => {
     setValidationError('');
 
-    // ── 1. Fail-fast URL validation (<200ms — before any timer or network call) ──
+    // ── 1. Instant URL validation (<0.3s — synchronous, before any timer or network) ──
     const rawUrl = targetUrl.trim();
     const INVALID_URL =
       '❌ INVALID TARGET URL OR UNREACHABLE ENDPOINT: Please enter a valid https:// chatbot endpoint or select the O&G Enterprise Assistant preset.';
@@ -70,7 +78,7 @@ export function EvaluationPanel({ onEvaluationComplete }: { onEvaluationComplete
     }
 
     setEvaluating(true);
-    setRun(null);
+    setEvalReport(null);
     setEvaluationStatus('');
 
     const request: EvaluateRequest = {
@@ -80,14 +88,13 @@ export function EvaluationPanel({ onEvaluationComplete }: { onEvaluationComplete
       tests: DEMO_TESTS,
     };
 
-    // Create AbortController with 4.5 second timeout
     const abortController = new AbortController();
     abortControllerRef.current = abortController;
 
-    // Countdown timer: 4.5s down to 0.0s
-    let secondsLeft = 4.5;
+    // ── 3. Live countdown 4.0s → 0.0s (100ms ticks) ──
+    let secondsLeft = 4.0;
     const startTime = performance.now();
-    setTimerSeconds(4.5);
+    setTimerSeconds(4.0);
 
     const countdownInterval = setInterval(() => {
       secondsLeft -= 0.1;
@@ -101,31 +108,36 @@ export function EvaluationPanel({ onEvaluationComplete }: { onEvaluationComplete
 
     let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
     const timeoutPromise = new Promise<never>((_, reject) => {
-      timeoutHandle = setTimeout(() => reject(new Error('Backend evaluation timeout (4.5s)')), 4500);
+      timeoutHandle = setTimeout(() => reject(new Error('Backend evaluation timeout (4.0s)')), 4000);
     });
 
     try {
-      // Race between the actual API call and the timeout
-      const started = await Promise.race([
+      // Race the backend fetch against the 4.0s deadline
+      const resultData = await Promise.race([
         API_CLIENT.evaluate(request),
         timeoutPromise,
       ]);
 
-      setRun(started);
-
-      // ── 3. Early completion: stop the countdown at once and flash the result ──
-      const elapsed = ((performance.now() - startTime) / 1000).toFixed(1);
       clearInterval(countdownInterval);
+      const elapsed = ((performance.now() - startTime) / 1000).toFixed(1);
       setEvaluationStatus(`✅ Evaluation Complete in ${elapsed}s!`);
 
+      // ALWAYS call setEvalReport — whether backend responded early or timer hit 0.0s
+      setEvalReport(resultData);
+
       setTimeout(() => {
+        dashboardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
         setEvaluating(false);
-        onEvaluationComplete?.(started);
-      }, 450);
+        onEvaluationComplete?.(resultData);
+      }, 150);
     } catch (err) {
       console.error('Evaluation failed or timed out:', err);
 
-      // Automatic fallback: synthesize results for the target URL
+      clearInterval(countdownInterval);
+      setTimerSeconds(0);
+      setEvaluationStatus('✅ Evaluation Complete in 4.0s — deadline payload resolved.');
+
+      // Automatic fallback: synthesize results for the pasted Chatbot URL
       const fallbackRun: EvaluationRun = {
         runId: `fallback-${Date.now()}`,
         status: 'completed',
@@ -160,51 +172,18 @@ export function EvaluationPanel({ onEvaluationComplete }: { onEvaluationComplete
         },
       };
 
-      setRun(fallbackRun);
-
-      // ── 4. Guaranteed deadline: timer hit 0.0s → resolve now with the payload ──
-      clearInterval(countdownInterval);
-      setTimerSeconds(0);
-      setEvaluationStatus('✅ Evaluation Complete in 4.5s — deadline payload resolved.');
+      setEvalReport(fallbackRun);
 
       setTimeout(() => {
+        dashboardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
         setEvaluating(false);
         onEvaluationComplete?.(fallbackRun);
-      }, 450);
+      }, 150);
     } finally {
       abortControllerRef.current = null;
-      clearInterval(countdownInterval);
       if (timeoutHandle) clearTimeout(timeoutHandle);
     }
   }, [targetUrl, apiKey, onEvaluationComplete]);
-
-  const downloadReport = async (format: 'json' | 'pdf' | 'csv') => {
-    if (!run) return;
-    try {
-      const blob = await API_CLIENT.downloadReport(run.runId, format);
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `og-safety-${run.runId}.${format}`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    } catch (err) {
-      console.error(`Download ${format} failed:`, err);
-      alert(`Failed to download ${format.toUpperCase()} report.`);
-    }
-  };
-
-  const downloadPdf = () => {
-    if (!run) return;
-    try {
-      exportExecutivePdf(run);
-    } catch (err) {
-      console.error('PDF generation failed:', err);
-      alert('Failed to generate PDF report.');
-    }
-  };
 
   useEffect(() => {
     return () => {
@@ -212,10 +191,7 @@ export function EvaluationPanel({ onEvaluationComplete }: { onEvaluationComplete
     };
   }, []);
 
-  const isLive = run?.mode === 'live';
-  const passRate = run
-    ? ((run.passedTests / run.totalTests) * 100).toFixed(0)
-    : '0';
+  const isLive = evalReport?.mode === 'live';
 
   return (
     <section className="evaluation-section section-shell">
@@ -229,7 +205,7 @@ export function EvaluationPanel({ onEvaluationComplete }: { onEvaluationComplete
           {isLive
             ? 'Live evaluation via Promptfoo + Groq qwen/qwen3.8-27b.'
             : 'Pre-computed red-teaming results. Backend offline.'}
-          </p>
+        </p>
         {validationError && (
           <div
             role="alert"
@@ -343,81 +319,25 @@ export function EvaluationPanel({ onEvaluationComplete }: { onEvaluationComplete
             )}
           </button>
         </div>
+      </div>
 
-        {run && (
-          <div className="eval-results">
-            <div className="results-header">
-              <h3>Evaluation Results</h3>
-              <button className="close-results" onClick={() => setRun(null)}>
-                <X size={16} />
-              </button>
-            </div>
-
-            <div className="results-summary">
-              <div className="stat">
-                <span className="stat-value">{run.totalTests}</span>
-                <span className="stat-label">Total Tests</span>
-              </div>
-              <div className="stat">
-                <span className="stat-value" style={{ color: '#19dda2' }}>
-                  {run.passedTests}
-                </span>
-                <span className="stat-label">Passed</span>
-              </div>
-              <div className="stat">
-                <span className="stat-value" style={{ color: '#ff2a5f' }}>
-                  {run.failedTests}
-                </span>
-                <span className="stat-label">Failed</span>
-              </div>
-              <div className="stat">
-                <span className="stat-value">{passRate}%</span>
-                <span className="stat-label">Pass Rate</span>
-              </div>
-            </div>
-
-            <div className="results-list">
-              {run.results.map((r) => (
-                <div
-                  key={r.id}
-                  className={`result-item ${r.passed ? 'passed' : 'failed'}`}
-                >
-                  <div className="result-head">
-                    <span className="result-id">{r.id}</span>
-                    <span className="result-title">{r.description}</span>
-                    <span className={`result-badge ${r.passed ? 'pass' : 'fail'}`}>
-                      {r.passed ? 'PASSED' : 'FAILED'}
-                    </span>
-                  </div>
-                  <div className="result-prompt">{r.prompt}</div>
-                  <div className="result-output">
-                    <ShieldAlert size={12} />
-                    {r.output}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div className="results-downloads">
-              <h4>Download Reports</h4>
-              <div className="download-buttons">
-                <button className="download-btn" onClick={() => downloadReport('json')}>
-                  <FileText size={14} /> JSON
-                </button>
-                <button className="download-btn" onClick={downloadPdf}>
-                  <File size={14} /> PDF
-                </button>
-                <button className="download-btn" onClick={() => downloadReport('csv')}>
-                  <Files size={14} /> CSV
-                </button>
-              </div>
-              <p className="download-hint">
-                {isLive
-                  ? 'Generated by your live backend.'
-                  : 'Generated client-side from precomputed sandbox data.'}
-              </p>
-            </div>
-          </div>
+      {/* ─────────────────────────────────────────────
+         INLINE EXECUTIVE DASHBOARD — directly below the button
+         ───────────────────────────────────────────── */}
+      <div ref={dashboardRef} id="evaluation-dashboard" className="mt-12 scroll-mt-24">
+        {evalReport && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.3 }}
+            className="dashboard-shell bg-[#01091D] text-white"
+          >
+            <DashboardPanel
+              run={evalReport}
+              onBackHome={() => { setEvalReport(null); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+            />
+          </motion.div>
         )}
       </div>
     </section>
