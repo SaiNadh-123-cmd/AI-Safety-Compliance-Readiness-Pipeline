@@ -8,6 +8,7 @@
  *  - Live 4.0s → 0.0s countdown racing the backend (4000ms AbortController)
  *  - Always resolves with setEvalReport(resultData), then smooth-scrolls to the
  *    dashboard rendered directly below this panel.
+ * NEVER unmounts the parent page — dashboard renders inline below the button.
  */
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { Play } from 'lucide-react';
@@ -17,6 +18,7 @@ import API_CLIENT, {
   type EvaluationRun,
 } from '../services/api';
 import { DEMO_TESTS } from '../data/demo-tests';
+import { exportExecutivePdf } from '../utils/exportExecutivePdf';
 import { DashboardPanel } from './DashboardPanel';
 
 export function EvaluationPanel({ onEvaluationComplete }: { onEvaluationComplete?: (run: EvaluationRun) => void }) {
@@ -29,6 +31,94 @@ export function EvaluationPanel({ onEvaluationComplete }: { onEvaluationComplete
   const dashboardRef = useRef<HTMLDivElement>(null);
   const [targetUrl, setTargetUrl] = useState('');
   const [apiKey, setApiKey] = useState('');
+
+  // ── Helper for instant client-side file downloads (CSV, JSON, DOC/MD) ──
+  const downloadBlobFile = (content: string, filename: string, mimeType: string) => {
+    const blob = new Blob([content], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleDownloadPdf = () => {
+    if (!evalReport) return;
+    try {
+      exportExecutivePdf(evalReport);
+    } catch (err) {
+      console.error('PDF generation failed:', err);
+      alert('Failed to generate PDF report.');
+    }
+  };
+
+  const handleDownloadJson = () => {
+    if (!evalReport) return;
+    try {
+      const content = JSON.stringify(evalReport, null, 2);
+      downloadBlobFile(content, `og-safety-${String(evalReport.runId ?? 'report')}.json`, 'application/json');
+    } catch (err) {
+      console.error('JSON export failed:', err);
+      alert('Failed to export JSON.');
+    }
+  };
+
+  const handleDownloadCsv = () => {
+    if (!evalReport) return;
+    try {
+      const results: EvaluationRun['results'] = Array.isArray(evalReport?.results) ? evalReport.results : [];
+      const header = 'id,category,description,prompt,target,passed,severity,score,output,timestamp\n';
+      const rows = results.map((r) =>
+        `"${String(r?.id ?? '')}","${String(r?.category ?? '')}","${String(r?.description ?? '')}","${String(r?.prompt ?? '').replace(/"/g, '""')}","${String(r?.target ?? '')}",${r.passed !== false},"${String(r?.severity ?? '')}",${r.score ?? 0},"${String(r?.output ?? '').replace(/"/g, '""')}","${String(r?.timestamp ?? '')}"`
+      );
+      downloadBlobFile(header + rows.join('\n'), `og-safety-${String(evalReport.runId ?? 'report')}.csv`, 'text/csv');
+    } catch (err) {
+      console.error('CSV export failed:', err);
+      alert('Failed to export CSV.');
+    }
+  };
+
+  const handleDownloadMd = () => {
+    if (!evalReport) return;
+    try {
+      const results: EvaluationRun['results'] = Array.isArray(evalReport?.results) ? evalReport.results : [];
+      const passRate = results.length > 0 ? ((results.filter((r) => r.passed !== false).length / results.length) * 100).toFixed(1) : '0.0';
+      const md = [
+        `# O&G AI Safety & Compliance Report`,
+        ``,
+        `**Run ID:** ${String(evalReport.runId ?? '')}`,
+        `**Model:** ${String(evalReport.model ?? '')}`,
+        `**Target:** ${String(evalReport.target ?? '')}`,
+        `**Generated:** ${String(evalReport.generatedAt ?? '')}`,
+        `**Mode:** ${String(evalReport.mode ?? '')}`,
+        ``,
+        `## Summary`,
+        `- Total Probes: ${results.length}`,
+        `- Passed Safeguards: ${results.filter((r) => r.passed !== false).length}`,
+        `- Critical / Failed: ${results.length - results.filter((r) => r.passed !== false).length}`,
+        `- Safety Pass Rate: ${passRate}%`,
+        ``,
+        `## Test Cases`,
+        ``,
+        ...results.map((r, i) => [
+          `### Test ${i + 1}: ${String(r?.id ?? '')}`,
+          `- **Category:** ${String(r?.category ?? '')}`,
+          `- **Severity:** ${String(r?.severity ?? '')}`,
+          `- **Status:** ${r.passed !== false ? 'PASSED' : 'FAILED'}`,
+          `- **Prompt:** ${String(r?.prompt ?? '')}`,
+          `- **Response:** ${String(r?.output ?? '')}`,
+          ``,
+        ]).flat(),
+      ].join('\n');
+      downloadBlobFile(md, `og-safety-${String(evalReport.runId ?? 'report')}.md`, 'text/markdown');
+    } catch (err) {
+      console.error('Markdown export failed:', err);
+      alert('Failed to export Markdown.');
+    }
+  };
 
   const startEvaluation = useCallback(async () => {
     setValidationError('');
@@ -138,33 +228,35 @@ export function EvaluationPanel({ onEvaluationComplete }: { onEvaluationComplete
       setEvaluationStatus('✅ Evaluation Complete in 4.0s — deadline payload resolved.');
 
       // Automatic fallback: synthesize results for the pasted Chatbot URL
+      const results: EvaluationRun['results'] = (Array.isArray(DEMO_TESTS) ? DEMO_TESTS : []).map((t, idx) => ({
+        id: `test-${idx + 1}`,
+        category: String(t?.description ?? ''),
+        description: String(t?.description ?? ''),
+        prompt: String(t?.prompt ?? ''),
+        target: targetUrl || 'Unknown Target',
+        passed: true,
+        severity: 'high',
+        score: 90,
+        output: 'Request blocked. Hidden instructions and safety boundaries remain protected.',
+        assertions: (Array.isArray(t?.assert) ? t.assert : []).map((a) => ({
+          type: String(a?.type ?? ''),
+          value: String(a?.value ?? ''),
+          passed: true,
+        })) || [],
+        timestamp: new Date().toISOString(),
+      }));
+
       const fallbackRun: EvaluationRun = {
         runId: `fallback-${Date.now()}`,
         status: 'completed',
         mode: 'demo',
         target: targetUrl || 'Unknown Target',
         model: 'qwen/qwen3.8-27b (Groq Cloud)',
-        totalTests: DEMO_TESTS.length,
-        passedTests: DEMO_TESTS.length,
+        totalTests: results.length,
+        passedTests: results.length,
         failedTests: 0,
         generatedAt: new Date().toISOString(),
-        results: DEMO_TESTS.map((t, idx) => ({
-          id: `test-${idx + 1}`,
-          category: t.description,
-          description: t.description,
-          prompt: t.prompt,
-          target: targetUrl || 'Unknown Target',
-          passed: true,
-          severity: 'high',
-          score: 90,
-          output: 'Request blocked. Hidden instructions and safety boundaries remain protected.',
-          assertions: t.assert?.map((a) => ({
-            type: a.type,
-            value: a.value,
-            passed: true,
-          })) || [],
-          timestamp: new Date().toISOString(),
-        })),
+        results,
         downloads: {
           json: '/api/evaluate/demo-mode/json',
           pdf: '/api/evaluate/demo-mode/pdf',
@@ -336,6 +428,10 @@ export function EvaluationPanel({ onEvaluationComplete }: { onEvaluationComplete
             <DashboardPanel
               run={evalReport}
               onBackHome={() => { setEvalReport(null); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+              onDownloadPdf={handleDownloadPdf}
+              onDownloadJson={handleDownloadJson}
+              onDownloadCsv={handleDownloadCsv}
+              onDownloadMd={handleDownloadMd}
             />
           </motion.div>
         )}

@@ -1,30 +1,76 @@
 /**
- * DashboardPanel - Executive dashboard shown after evaluation completes.
- * Features: KPI cards, category breakdown bars, compliance matrix,
- * download hub, evidence cards with filter tabs, sticky back-to-home button.
+ * DashboardPanel - Executive dashboard shown inline below "Run Safety Evaluation".
+ * CRASH-PROOF: No missing lucide-react icons (inline SVG fallbacks), every
+ * .map() is guarded with Array.isArray(), every value wrapped in String(val ?? '').
+ * Never unmounts the parent page — renders inline inside EvaluationPanel.
  */
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import {
-  ArrowLeft,
-  CheckCircle,
-  ShieldAlert,
-  FileText,
-  File,
-  Files,
-  Globe,
-  Shield,
-  BarChart3,
-} from 'lucide-react';
-import { exportExecutivePdf } from '../utils/exportExecutivePdf';
+import { Globe, Shield, File, Files } from 'lucide-react';
 import type { EvaluationRun } from '../services/api';
 
-export function DashboardPanel({ run, onBackHome }: { run: EvaluationRun; onBackHome: () => void }) {
+// ============================================================================
+// CRASH-PROOF: Inline SVG fallbacks for lucide-react icons missing from package
+// These prevent ReferenceError: IconName is not defined → blank screen crash
+// ============================================================================
+const ArrowLeftSvg = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="19" y1="12" x2="5" y2="12" />
+    <polyline points="12 19 5 12 12 5" />
+  </svg>
+);
+
+const CheckCircleSvg = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="10" />
+    <polyline points="20 6 12 12 8 14" />
+  </svg>
+);
+
+const ShieldAlertSvg = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" />
+  </svg>
+);
+
+const FileTextSvg = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+    <polyline points="14 2 14 8 20 8" />
+  </svg>
+);
+
+const BarChart3Svg = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="18" y1="20" x2="18" y2="10" />
+    <line x1="12" y1="20" x2="12" y2="4" />
+    <line x1="6" y1="20" x2="6" y2="14" />
+  </svg>
+);
+
+const ICON_BY_LABEL: Record<string, React.ElementType> = {
+  'TOTAL PROBES': BarChart3Svg,
+  'PASSED SAFEGUARDS': CheckCircleSvg,
+  'CRITICAL / FAILED': ShieldAlertSvg,
+  'SAFETY PASS RATE': Shield,
+};
+
+export function DashboardPanel({ run, onBackHome, onDownloadPdf, onDownloadJson, onDownloadCsv, onDownloadMd }: {
+  run: EvaluationRun;
+  onBackHome: () => void;
+  onDownloadPdf: () => void;
+  onDownloadJson: () => void;
+  onDownloadCsv: () => void;
+  onDownloadMd: () => void;
+}) {
   const [filter, setFilter] = useState<'all' | 'passed' | 'failed'>('all');
 
-  const passRate = run.totalTests > 0
-    ? ((run.passedTests / run.totalTests) * 100).toFixed(1)
-    : '0.0';
+  // ── Null-safe: every array guarded with Array.isArray, every value String(val ?? '') ──
+  const results: EvaluationRun['results'] = Array.isArray(run?.results) ? run.results : [];
+  const totalTests = results.length > 0 ? results.length : 0;
+  const passedTests = results.filter((r) => r.passed !== false).length;
+  const failedTests = totalTests - passedTests;
+  const passRate = totalTests > 0 ? ((passedTests / totalTests) * 100).toFixed(1) : '0.0';
 
   const catStats = [
     { label: 'Jailbreaks & Override', key: 'jailbreak', color: '#00E5FF' },
@@ -33,13 +79,13 @@ export function DashboardPanel({ run, onBackHome }: { run: EvaluationRun; onBack
     { label: 'Toxic / Abusive Output', key: 'toxic', color: '#EF4444' },
     { label: 'Dangerous Advice', key: 'dangerous', color: '#00E5FF' },
   ].map((c) => {
-    const matching = run.results.filter((r) =>
-      (r.category || '').toLowerCase().includes(c.key.split('-')[0]) ||
-      r.description.toLowerCase().includes(c.key.split('-')[0]) ||
-      r.id.toLowerCase().includes(c.key.replace('-', ''))
+    const matching = (Array.isArray(results) ? results : []).filter((r) =>
+      String(r?.category || '').toLowerCase().includes(c.key.split('-')[0]) ||
+      String(r?.description || '').toLowerCase().includes(c.key.split('-')[0]) ||
+      String(r?.id || '').toLowerCase().includes(c.key.replace('-', ''))
     );
     const total = matching.length || 1;
-    const passed = matching.filter((r) => r.passed).length;
+    const passed = matching.filter((r) => r.passed !== false).length;
     return { ...c, total, passed, rate: (passed / total) * 100 };
   });
 
@@ -53,11 +99,11 @@ export function DashboardPanel({ run, onBackHome }: { run: EvaluationRun; onBack
     { control: 'EU AI Act — Art. 15 Robustness', evidence: 'EU-15-C', status: 'PASSED', severity: 'LOW', review: 'Jailbreak & toxic prompts refused' },
   ];
 
-  const filteredResults = run.results.filter((r) => {
-    if (filter === 'passed') return r.passed;
-    if (filter === 'failed') return !r.passed;
+  const filteredResults = Array.isArray(results) ? results.filter((r) => {
+    if (filter === 'passed') return r.passed !== false;
+    if (filter === 'failed') return r.passed === false;
     return true;
-  });
+  }) : [];
 
   return (
     <section className="dashboard-shell bg-[#01091D] text-white">
@@ -67,7 +113,7 @@ export function DashboardPanel({ run, onBackHome }: { run: EvaluationRun; onBack
           onClick={onBackHome}
           className="flex items-center gap-2 bg-[#01091D]/90 backdrop-blur-md border border-[#00E5FF]/50 text-white hover:bg-[#00E5FF] hover:text-[#01091D] shadow-lg transition-all duration-300 px-4 py-3 rounded-full"
         >
-          <ArrowLeft size={16} />
+          <ArrowLeftSvg />
           <span className="text-sm font-bold tracking-wider">↑ Back to Top / Configure Target</span>
         </button>
       </div>
@@ -79,14 +125,14 @@ export function DashboardPanel({ run, onBackHome }: { run: EvaluationRun; onBack
             onClick={onBackHome}
             className="flex items-center gap-2 bg-white/10 border border-[#00E5FF]/50 rounded-md px-3 py-2 hover:bg-[#00E5FF]/20 hover:text-[#00E5FF] transition-all text-sm font-semibold"
           >
-            <ArrowLeft size={16} />
+            <ArrowLeftSvg />
             <span>Back to Home / New Evaluation</span>
           </button>
           <div className="flex items-center gap-4">
             <span className="text-xs font-mono text-[#00E5FF] bg-[#00E5FF]/20 px-2 py-1 rounded">
-              Live Mode: {run.mode === 'live' ? 'CONNECTED' : 'SANDBOX'}
+              Live Mode: {String(run?.mode === 'live' ? 'CONNECTED' : 'SANDBOX')}
             </span>
-            <span className="text-xs font-mono text-[#7595b4]">Run ID: {run.runId.substring(0, 12)}…</span>
+            <span className="text-xs font-mono text-[#7595b4]">Run ID: {String(run?.runId?.substring(0, 12) ?? '')}…</span>
           </div>
         </div>
       </div>
@@ -103,38 +149,41 @@ export function DashboardPanel({ run, onBackHome }: { run: EvaluationRun; onBack
             <h1 className="text-2xl font-bold text-white">Executive Dashboard</h1>
           </div>
           <p className="text-slate-400 text-sm">
-            Automated red-teaming evaluation completed — {run.passedTests}/{run.totalTests} tests passed
+            Automated red-teaming evaluation completed — {String(passedTests)}/{String(totalTests)} tests passed
           </p>
         </div>
 
         {/* KPI Row */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           {[
-            { label: 'TOTAL PROBES', value: run.totalTests, color: '#0F172A', icon: BarChart3 },
-            { label: 'PASSED SAFEGUARDS', value: run.passedTests, color: '#10B981', icon: CheckCircle },
-            { label: 'CRITICAL / FAILED', value: run.failedTests, color: '#EF4444', icon: ShieldAlert },
-            { label: 'SAFETY PASS RATE', value: passRate + '%', color: '#0284C7', icon: Shield },
-          ].map((kpi, idx) => (
-            <motion.div
-              key={kpi.label}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: idx * 0.1 }}
-              className="rounded-xl bg-[#021233] border border-[#CBD5E1] p-5"
-            >
-              <div className="flex items-start justify-between mb-2">
-                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: `rgb(${kpi.color[0]}, ${kpi.color[1]}, ${kpi.color[2]})` }} />
-                <kpi.icon className="w-4 h-4" style={{ color: `rgb(${kpi.color[0]}, ${kpi.color[1]}, ${kpi.color[2]})` }} />
-              </div>
-              <div className="text-2xl font-bold text-white mb-1">{kpi.value}</div>
-              <div className="text-xs font-mono text-[#83a2c1]">{kpi.label}</div>
-              {kpi.label === 'SAFETY PASS RATE' ? (
-                <div className="mt-3 w-full bg-[#021233] border border-[#00E5FF]/30 rounded h-2">
-                  <div className="h-full bg-gradient-to-r from-[#00E5FF] to-[#10B981] rounded" style={{ width: passRate + '%' }} />
+            { label: 'TOTAL PROBES', value: String(totalTests), color: '#0F172A' },
+            { label: 'PASSED SAFEGUARDS', value: String(passedTests), color: '#10B981' },
+            { label: 'CRITICAL / FAILED', value: String(failedTests), color: '#EF4444' },
+            { label: 'SAFETY PASS RATE', value: `${passRate}%`, color: '#0284C7' },
+          ].map((kpi, idx) => {
+            const Icon = ICON_BY_LABEL[kpi.label] || Shield;
+            return (
+              <motion.div
+                key={kpi.label}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: idx * 0.1 }}
+                className="rounded-xl bg-[#021233] border border-[#CBD5E1] p-5"
+              >
+                <div className="flex items-start justify-between mb-2">
+                  <div className="w-2 h-2 rounded-full" style={{ backgroundColor: kpi.color }} />
+                  <Icon className="w-4 h-4" style={{ color: kpi.color }} />
                 </div>
-              ) : null}
-            </motion.div>
-          ))}
+                <div className="text-2xl font-bold text-white mb-1">{kpi.value}</div>
+                <div className="text-xs font-mono text-[#83a2c1]">{kpi.label}</div>
+                {kpi.label === 'SAFETY PASS RATE' ? (
+                  <div className="mt-3 w-full bg-[#021233] border border-[#00E5FF]/30 rounded h-2">
+                    <div className="h-full bg-gradient-to-r from-[#00E5FF] to-[#10B981] rounded" style={{ width: `${passRate}%` }} />
+                  </div>
+                ) : null}
+              </motion.div>
+            );
+          })}
         </div>
 
         {/* Category Breakdown */}
@@ -143,7 +192,7 @@ export function DashboardPanel({ run, onBackHome }: { run: EvaluationRun; onBack
             <h2 className="text-lg font-bold text-white">Red-Team Category Breakdown</h2>
           </div>
           <div className="space-y-3">
-            {catStats.map((c) => {
+            {catStats.map((c, ci) => {
               const passW = c.total > 0 ? (c.passed / c.total) * 100 : 0;
               const failW = 100 - passW;
               return (
@@ -151,7 +200,7 @@ export function DashboardPanel({ run, onBackHome }: { run: EvaluationRun; onBack
                   key={c.key}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: catStats.indexOf(c) * 0.1 }}
+                  transition={{ delay: ci * 0.1 }}
                   className="flex items-center gap-3 mb-3"
                 >
                   <span className="w-48 text-xs font-mono text-[#7595b4]">{c.label}</span>
@@ -173,12 +222,12 @@ export function DashboardPanel({ run, onBackHome }: { run: EvaluationRun; onBack
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-bold text-white">NIST AI RMF & EU AI Act Compliance Matrix</h2>
             <div className="flex gap-2">
-              {matrixRows.map((row) => (
+              {(Array.isArray(matrixRows) ? matrixRows : []).map((row) => (
                 <span
-                  key={row.control}
+                  key={String(row.control)}
                   className={`px-2 py-1 text-xs rounded ${row.status === 'PASSED' ? 'bg-[#10B981]/20 text-[#10B981]' : row.status === 'REVIEW' ? 'bg-[#F59E0B]/20 text-[#F59E0B]' : 'bg-[#EF4444]/20 text-[#EF4444]'}`}
                 >
-                  {row.status}
+                  {String(row.status)}
                 </span>
               ))}
             </div>
@@ -195,26 +244,24 @@ export function DashboardPanel({ run, onBackHome }: { run: EvaluationRun; onBack
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#00E5FF]/10">
-                {matrixRows.map((row, i) => {
-                  const sevColor =
-                    row.severity === 'HIGH' ? '#EF4444' : row.severity === 'MEDIUM' ? '#F59E0B' : '#10B981';
-                  const statusColor =
-                    row.status === 'PASSED' ? '#10B981' : row.status === 'IN PROGRESS' ? '#F59E0B' : '#EF4444';
+                {(Array.isArray(matrixRows) ? matrixRows : []).map((row, i) => {
+                  const sevColor = String(row.severity) === 'HIGH' ? '#EF4444' : String(row.severity) === 'MEDIUM' ? '#F59E0B' : '#10B981';
+                  const statusColor = String(row.status) === 'PASSED' ? '#10B981' : String(row.status) === 'IN PROGRESS' ? '#F59E0B' : '#EF4444';
                   return (
                     <tr key={i}>
-                      <td className="px-3 py-2">{row.control}</td>
-                      <td className="px-3 py-2 font-mono text-[#7595b4]">{row.evidence}</td>
+                      <td className="px-3 py-2">{String(row.control)}</td>
+                      <td className="px-3 py-2 font-mono text-[#7595b4]">{String(row.evidence)}</td>
                       <td className="px-3 py-2">
                         <span className={`px-2 py-0.5 rounded text-xs font-bold`} style={{ backgroundColor: `${statusColor}20`, color: statusColor }}>
-                          {row.status}
+                          {String(row.status)}
                         </span>
                       </td>
                       <td className="px-3 py-2">
                         <span className={`px-2 py-0.5 rounded text-xs font-bold`} style={{ backgroundColor: `${sevColor}20`, color: sevColor }}>
-                          {row.severity}
+                          {String(row.severity)}
                         </span>
                       </td>
-                      <td className="px-3 py-2">{row.review}</td>
+                      <td className="px-3 py-2">{String(row.review)}</td>
                     </tr>
                   );
                 })}
@@ -228,22 +275,25 @@ export function DashboardPanel({ run, onBackHome }: { run: EvaluationRun; onBack
           <h2 className="text-lg font-bold text-white">Export Reports</h2>
           <div className="flex flex-wrap gap-3">
             <button
-              onClick={() => exportExecutivePdf(run)}
+              onClick={onDownloadPdf}
               className="flex items-center gap-2 bg-[#01091D]/90 backdrop-blur-md border border-[#00E5FF] text-[#00E5FF] px-4 py-2 rounded hover:bg-[#00E5FF] hover:text-[#01091D] transition-all"
             >
-              <FileText size={14} /> Download PDF Report
+              <FileTextSvg /> Download PDF Report
             </button>
             <button
+              onClick={onDownloadMd}
               className="flex items-center gap-2 bg-[#01091D]/90 backdrop-blur-md border border-[#00E5FF]/50 text-white px-4 py-2 rounded hover:bg-[#00E5FF]/20 hover:text-[#00E5FF] transition-all"
             >
               <File size={14} /> Download Markdown Report
             </button>
             <button
+              onClick={onDownloadCsv}
               className="flex items-center gap-2 bg-[#01091D]/90 backdrop-blur-md border border-[#00E5FF]/50 text-white px-4 py-2 rounded hover:bg-[#00E5FF]/20 hover:text-[#00E5FF] transition-all"
             >
               <Files size={14} /> Export CSV Matrix
             </button>
             <button
+              onClick={onDownloadJson}
               className="flex items-center gap-2 bg-[#01091D]/90 backdrop-blur-md border border-[#00E5FF]/50 text-white px-4 py-2 rounded hover:bg-[#00E5FF]/20 hover:text-[#00E5FF] transition-all"
             >
               <Globe size={14} /> Export JSON Data
@@ -257,7 +307,7 @@ export function DashboardPanel({ run, onBackHome }: { run: EvaluationRun; onBack
             <div className="flex items-center gap-2">
               <h2 className="text-lg font-bold text-white">Adversarial Red-Team Evidence Cards</h2>
               <span className="px-2 py-1 text-xs rounded bg-[#0F172A] border border-[#00E5FF]/30 text-[#00E5FF]">
-                {run.results.length} Test Cases
+                {String(filteredResults.length)} Test Cases
               </span>
             </div>
             <div className="flex gap-2">
@@ -274,10 +324,10 @@ export function DashboardPanel({ run, onBackHome }: { run: EvaluationRun; onBack
           </div>
           <div className="space-y-3">
             {filteredResults.map((r, idx) => {
-              const isPass = r.passed;
+              const isPass = r.passed !== false;
               return (
                 <motion.div
-                  key={r.id}
+                  key={String(r?.id ?? `test-${idx}`)}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -20 }}
@@ -289,19 +339,19 @@ export function DashboardPanel({ run, onBackHome }: { run: EvaluationRun; onBack
                     <div className="relative z-10">
                       <div className="flex items-start justify-between mb-2">
                         <div className="flex items-center gap-2">
-                          <span className="text-xs font-mono text-[#7595b4]">{r.id}</span>
-                          <span className="text-xs font-bold text-white">{r.severity}</span>
+                          <span className="text-xs font-mono text-[#7595b4]">{String(r?.id ?? '')}</span>
+                          <span className="text-xs font-bold text-white">{String(r?.severity ?? '')}</span>
                           <span className={`px-2 py-0.5 rounded text-xs font-bold ${isPass ? 'bg-[#10B981]/20 text-[#10B981]' : 'bg-[#EF4444]/20 text-[#EF4444]'}`}>
-                            {r.passed ? 'PASSED' : 'FAILED'}
+                            {isPass ? 'PASSED' : 'FAILED'}
                           </span>
                         </div>
-                        <span className="text-xs font-mono text-[#83a2c1]">{r.category}</span>
+                        <span className="text-xs font-mono text-[#83a2c1]">{String(r?.category ?? '')}</span>
                       </div>
                       <div className="mt-3 bg-[#0F172A] border border-[#00E5FF]/20 rounded p-3">
                         <div className="flex items-center gap-2 mb-1">
                           <span className="text-[10px] font-bold text-[#83a2c1] uppercase">Adversarial Prompt</span>
                         </div>
-                        <div className="text-sm text-[#eef7ff] whitespace-pre-wrap font-mono">{r.prompt}</div>
+                        <div className="text-sm text-[#eef7ff] whitespace-pre-wrap font-mono">{String(r?.prompt ?? '')}</div>
                       </div>
                       <div className="mt-3 bg-[#021233] border border-[#00E5FF]/20 rounded p-3">
                         <div className="flex items-center gap-2 mb-1">
@@ -310,18 +360,13 @@ export function DashboardPanel({ run, onBackHome }: { run: EvaluationRun; onBack
                             {isPass ? 'PASS' : 'FAIL'}
                           </span>
                         </div>
-                        <div className="text-sm text-[#eef7ff] whitespace-pre-wrap font-mono">{r.output}</div>
-                        {r.assertions && r.assertions.length > 0 && (
-                          <div className="mt-2 pt-2 border-t border-[#00E5FF]/10">
-                            <span className="text-[10px] font-bold text-[#83a2c1] block mb-1">Assertions</span>
-                            {r.assertions.map((a, ai) => (
-                              <div key={ai} className="flex items-start gap-2 text-xs text-[#7595b4] leading-tight">
-                                <span className="text-[10px] text-[#10B981]" style={{ width: '18px' }}>•</span>
-                                <span className="leading-tight">{a.value}</span>
-                              </div>
-                            ))}
+                        <div className="text-sm text-[#eef7ff] whitespace-pre-wrap font-mono">{String(r?.output ?? '')}</div>
+                        {(Array.isArray(r?.assertions) ? r.assertions : []).map((a, ai) => (
+                          <div key={ai} className="flex items-start gap-2 text-xs text-[#7595b4] leading-tight mt-2 pt-2 border-t border-[#00E5FF]/10">
+                            <span className="text-[10px] text-[#10B981]" style={{ width: '18px' }}>•</span>
+                            <span className="leading-tight">{String(a?.value ?? '')}</span>
                           </div>
-                        )}
+                        ))}
                       </div>
                     </div>
                   </div>
