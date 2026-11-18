@@ -1,34 +1,21 @@
 import express from 'express';
-import { checkGroqHealth } from '../services/promptfoo.js';
 
 const router = express.Router();
 
 /**
  * GET /api/health
- * Returns backend status, Groq integration status, and Promptfoo availability.
- * Frontend polls this to detect live vs demo mode.
+ * Returns backend status, Groq API key configuration, and model info.
+ * Frontend uses this to detect live vs demo mode before evaluation.
  */
 router.get('/', async (_req, res) => {
-  const groqHealth = await checkGroqHealth();
+  const groqApiKey = process.env.GROQ_API_KEY;
+  const model = process.env.GROQ_MODEL || 'llama-3.1-8b-instant';
 
   res.json({
-    status: 'healthy',
-    service: 'og-ai-safety-backend',
-    version: '1.0.0',
+    status: 'ok',
+    groqKeyConfigured: Boolean(groqApiKey),
+    model,
     timestamp: new Date().toISOString(),
-    mode: 'live',
-    integrations: {
-      promptfoo: {
-        available: true,
-        version: '0.125.0',
-        endpoint: '/api/evaluate',
-      },
-      groq: {
-        online: groqHealth.online,
-        models: groqHealth.models,
-        error: groqHealth.error || null,
-      },
-    },
   });
 });
 

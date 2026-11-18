@@ -20,6 +20,18 @@ router.post('/', async (req, res) => {
   try {
     const { targetUrl, apiKey, headers, model = process.env.GROQ_MODEL || 'llama-3.1-8b-instant', tests = [] } = req.body;
 
+    // TEST_MODE enforcement: if set to 'false', Groq must be available
+    const testMode = process.env.TEST_MODE;
+    const groqApiKey = apiKey || process.env.GROQ_API_KEY;
+
+    if (testMode === 'false' && !groqApiKey) {
+      return res.status(503).json({
+        error: 'Groq API key not configured and TEST_MODE=false. Live evaluation required.',
+        status: 'error',
+        timestamp: new Date().toISOString(),
+      });
+    }
+
     const runId = uuidv4();
     const startedAt = new Date().toISOString();
 
@@ -96,6 +108,14 @@ router.post('/', async (req, res) => {
     const GROQ_API_KEY = apiKey || process.env.GROQ_API_KEY;
     const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
 
+    if (!GROQ_API_KEY) {
+      return res.status(503).json({
+        error: 'GROQ_API_KEY is not set. Cannot perform live evaluation without Groq API key.',
+        status: 'error',
+        timestamp: new Date().toISOString(),
+      });
+    }
+
     // Initial run record
     runs.set(runId, {
       runId,
@@ -109,12 +129,15 @@ router.post('/', async (req, res) => {
       error: null,
     });
 
-    // Run evaluation against Groq API in parallel (38s deadline)
+    // Run evaluation against Groq API in parallel (40s deadline)
     (async () => {
       try {
         const probeResults = await Promise.all(
           testsToRun.map(async (test, idx) => {
             const probeStart = Date.now();
+            const abortCtrl = new AbortController();
+            const probeTimeout = setTimeout(() => abortCtrl.abort(), 38000);
+
             try {
               const groqRes = await axios.post(
                 GROQ_API_URL,
@@ -135,10 +158,12 @@ router.post('/', async (req, res) => {
                     Authorization: `Bearer ${GROQ_API_KEY}`,
                     'Content-Type': 'application/json',
                   },
-                  timeout: 38000,
+                  signal: abortCtrl.signal,
+                  timeout: 35000,
                 }
               );
 
+              clearTimeout(probeTimeout);
               const probeLatency = Date.now() - probeStart;
               const modelOutput = groqRes.data.choices?.[0]?.message?.content || '';
               const passed = await evaluateAgainstAssertions(modelOutput, test.assert || []);
@@ -152,8 +177,8 @@ router.post('/', async (req, res) => {
                 passed,
                 severity: (test.severity || 'high').toLowerCase(),
                 score: passed ? 92 : 18,
-                latencyMs: probeLatency || (240 + idx * 45),
-                tokens: groqRes.data.usage?.total_tokens || (45 + idx * 8),
+                latencyMs: probeLatency,
+                tokens: groqRes.data.usage?.total_tokens || 0,
                 output: modelOutput || '',
                 assertions: (test.assert || []).map((a) => ({
                   type: a.type,
@@ -163,6 +188,7 @@ router.post('/', async (req, res) => {
                 timestamp: new Date().toISOString(),
               };
             } catch (err) {
+              clearTimeout(probeTimeout);
               const probeLatency = Date.now() - probeStart;
               return {
                 id: test.id || `TEST-0${idx + 1}`,
@@ -173,7 +199,7 @@ router.post('/', async (req, res) => {
                 passed: false,
                 severity: (test.severity || 'high').toLowerCase(),
                 score: 0,
-                latencyMs: probeLatency || 320,
+                latencyMs: probeLatency,
                 tokens: 0,
                 output: `Request failed: ${err.message}`,
                 assertions: (test.assert || []).map((a) => ({

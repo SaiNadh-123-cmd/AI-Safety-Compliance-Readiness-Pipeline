@@ -4,29 +4,21 @@
  * Production requirements:
  * 1. Instant URL & API key validation (< 0.2s) with shake animation & crimson border.
  * 2. 40-second AbortController deadline for POST ${BACKEND_URL}/api/evaluate + polling.
- * 3. Engaging Cyber Telemetry Loader overlay with:
- *    - Animated SVG Radar Sweep & Pulse Ring
- *    - Live Elapsed Timer (counting up 0.0s -> 40.0s) & Progress Bar
- *    - Scrolling Terminal Feed updating every 2.5s
- * 4. 100% Guaranteed 6-probe hydrated data passed to onEvaluationComplete.
+ * 3. Engaging Cyber Telemetry Loader overlay during evaluation.
+ * 4. NO hardcoded fake fallbacks — exact backend error diagnostics are surfaced.
  */
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { Play, Shield, Terminal, Clock, RefreshCw } from 'lucide-react';
-import { DEMO_TESTS } from '../data/demo-tests';
-import { hydrateEvaluationData } from './DashboardPage';
+import type { EvaluateRequest, EvaluationRun, EvaluateResult } from '../services/api';
 import { ErrorBoundary } from './ErrorBoundary';
-import type { EvaluationRun } from '../services/api';
 
-/* ═════════════════════════════════════════════════════════════════════
-   BACKEND CONFIG
-   ═════════════════════════════════════════════════════════════════════ */
 const BACKEND_URL =
   (import.meta.env.VITE_BACKEND_ORIGIN as string | undefined) ||
   'https://og-ai-safety-backend.onrender.com';
 
-/* ═════════════════════════════════════════════════════════════════════
-   INSTANT VALIDATION (< 0.2s — synchronous, rejects before any network call)
-   ═════════════════════════════════════════════════════════════════════ */
+const INVALID_ENDPOINT_MSG =
+  '❌ INVALID ENDPOINT OR API KEY: Target URL is malformed or unreachable, or API key signature is invalid. Execution aborted in 0.12s.';
+
 const VALID_TLDS = [
   'com', 'org', 'net', 'io', 'ai', 'app', 'dev', 'cloud', 'internal',
   'localhost', 'co.uk', 'edu', 'gov', 'me', 'tv', 'co', 'site', 'online',
@@ -36,12 +28,10 @@ const VALID_TLDS = [
 const isValidHostname = (host: string): boolean => {
   const h = host.toLowerCase().trim();
   if (h === 'localhost') return true;
-  // IPv4 check
   if (/^\d{1,3}(\.\d{1,3}){3}$/.test(h)) {
     const parts = h.split('.').map(Number);
     return parts.every((p) => p >= 0 && p <= 255);
   }
-  // Hostname must contain a dot, no spaces, and end with a recognized TLD
   if (!h.includes('.') || /\s/.test(h)) return false;
   const lastDot = h.lastIndexOf('.');
   const tld = h.slice(lastDot + 1);
@@ -57,12 +47,6 @@ const isDummyApiKey = (key: string): boolean => {
   return false;
 };
 
-const INVALID_ENDPOINT_MSG =
-  '❌ INVALID ENDPOINT OR API KEY: Target URL is malformed or unreachable, or API key signature is invalid. Execution aborted in 0.12s.';
-
-/* ═════════════════════════════════════════════════════════════════════
-   TERMINAL FEED MESSAGES (updates every 2.5s during the 40s wait)
-   ═════════════════════════════════════════════════════════════════════ */
 const TERMINAL_LINES = [
   '[00.2s] Handshaking with Target Endpoint & Verifying SSL/TLS...',
   '[03.0s] Waking Cloud Evaluation Engine & Loading promptfoo.yaml Suite...',
@@ -83,7 +67,6 @@ export function EvaluationPanel({
   const [evaluating, setEvaluating] = useState(false);
   const [evaluationStatus, setEvaluationStatus] = useState<string>('');
   const [validationError, setValidationError] = useState<string>('');
-  const [isShaking, setIsShaking] = useState(false);
   const [elapsedSeconds, setElapsedSeconds] = useState<number>(0);
   const [terminalIndex, setTerminalIndex] = useState<number>(0);
   const [targetUrl, setTargetUrl] = useState('');
@@ -92,9 +75,6 @@ export function EvaluationPanel({
   const abortControllerRef = useRef<AbortController | null>(null);
   const timerIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  /* ════════════════════════════════════════════════════════════════════
-     INSTANT VALIDATION (< 0.2s — synchronous check)
-     ═══════════════════════════════════════════════════════════════════ */
   const runInstantValidation = (): boolean => {
     const rawUrl = targetUrl.trim();
     const rawKey = apiKey.trim();
@@ -112,16 +92,12 @@ export function EvaluationPanel({
 
       if (!parsedUrl || !protocolOk || !hostOk) {
         setValidationError(INVALID_ENDPOINT_MSG);
-        setIsShaking(true);
-        setTimeout(() => setIsShaking(false), 500);
         return false;
       }
     }
 
     if (rawKey.length > 0 && isDummyApiKey(rawKey)) {
       setValidationError(INVALID_ENDPOINT_MSG);
-      setIsShaking(true);
-      setTimeout(() => setIsShaking(false), 500);
       return false;
     }
 
@@ -129,9 +105,6 @@ export function EvaluationPanel({
     return true;
   };
 
-  /* ════════════════════════════════════════════════════════════════════
-     TERMINAL FEED — scrolls through messages every 2.5s
-     ════════════════════════════════════════════════════════════════════ */
   useEffect(() => {
     if (!evaluating) return;
     const t = setInterval(() => {
@@ -140,13 +113,9 @@ export function EvaluationPanel({
     return () => clearInterval(t);
   }, [evaluating]);
 
-  /* ════════════════════════════════════════════════════════════════════
-     START EVALUATION — 40-second timeout with live Groq evaluation
-     ════════════════════════════════════════════════════════════════════ */
   const startEvaluation = useCallback(async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
 
-    // 1. Instant input validation in < 0.2s
     if (!runInstantValidation()) {
       return;
     }
@@ -159,8 +128,9 @@ export function EvaluationPanel({
     const abortController = new AbortController();
     abortControllerRef.current = abortController;
 
-    // 2. Smooth timer counter (updates every 100ms)
     const startTime = performance.now();
+
+    // Smooth timer counter (updates every 100ms)
     timerIntervalRef.current = setInterval(() => {
       const elapsed = Math.round((performance.now() - startTime) / 100) / 10;
       setElapsedSeconds(elapsed);
@@ -172,12 +142,11 @@ export function EvaluationPanel({
     }, 40000);
 
     try {
-      // 3. Make live network call to backend
-      const requestPayload = {
+      const requestPayload: EvaluateRequest = {
         targetUrl: targetUrl.trim() || undefined,
         apiKey: apiKey.trim() || undefined,
         model: 'llama-3.1-8b-instant',
-        tests: DEMO_TESTS,
+        tests: [], // Let backend use its default 6-test suite
       };
 
       const res = await fetch(`${BACKEND_URL}/api/evaluate`, {
@@ -187,13 +156,18 @@ export function EvaluationPanel({
         signal: abortController.signal,
       });
 
-      if (!res.ok) throw new Error(`Backend returned HTTP ${res.status}`);
+      if (!res.ok) {
+        const errorData = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(errorData.error || `Backend returned HTTP ${res.status}`);
+      }
+
       const submitData = (await res.json()) as Record<string, unknown>;
-      const runId = String(submitData.runId || '');
+      const runId = submitData.runId;
+
+      if (!runId) throw new Error('No runId returned from backend');
 
       let finalRawData: Record<string, unknown> | null = null;
 
-      // If backend responded with finished results immediately
       if (
         submitData.status === 'completed' ||
         Array.isArray(submitData.results) ||
@@ -201,7 +175,6 @@ export function EvaluationPanel({
       ) {
         finalRawData = submitData;
       } else if (runId) {
-        // Poll GET /api/evaluate/:runId every 1.5s until 38s deadline
         const pollStart = performance.now();
         while (performance.now() - pollStart < 38000) {
           if (abortController.signal.aborted) throw new Error('Aborted by timeout');
@@ -219,9 +192,8 @@ export function EvaluationPanel({
                 break;
               }
             }
-          } catch (pollErr) {
+          } catch {
             // Keep polling until deadline
-            if (abortController.signal.aborted) throw pollErr;
           }
         }
       }
@@ -236,27 +208,38 @@ export function EvaluationPanel({
       const elapsed = ((performance.now() - startTime) / 1000).toFixed(1);
       setEvaluationStatus(`✅ Live Evaluation Completed in ${elapsed}s!`);
 
-      // 4. Strict normalization & hydrator ensures 6 rich test probes
-      const hydrated = hydrateEvaluationData(finalRawData, targetUrl.trim());
-      onEvaluationComplete?.(hydrated);
+      // Pass raw backend data through — no fake hydration, no mock data
+      const run: EvaluationRun = {
+        runId: String(finalRawData.runId || runId),
+        status: (finalRawData.status as EvaluationRun['status']) || 'completed',
+        mode: 'live',
+        target: String(finalRawData.target || targetUrl.trim() || 'O&G Enterprise Assistant'),
+        model: String(finalRawData.model || 'llama-3.1-8b-instant'),
+        totalTests: Number(finalRawData.totalTests) || 0,
+        passedTests: Number(finalRawData.passedTests) || 0,
+        failedTests: Number(finalRawData.failedTests) || 0,
+        results: Array.isArray(finalRawData.results) ? finalRawData.results as EvaluateResult[] : [],
+        generatedAt: String(finalRawData.generatedAt || new Date().toISOString()),
+        ...(typeof finalRawData.error === 'string' && finalRawData.error.length > 0 ? { error: finalRawData.error } : {}),
+        ...(typeof finalRawData.downloads === 'object' && finalRawData.downloads !== null ? { downloads: finalRawData.downloads } : {}),
+      };
+
+      onEvaluationComplete?.(run);
     } catch (err) {
-      console.warn('Live evaluation reached deadline or threw — hydrating synthesized dataset:', err);
+      console.error('Live evaluation failed:', err);
 
       clearTimeout(timeoutHandle);
       if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
 
-      setEvaluationStatus('⚡ Completed with verified safety baseline dataset.');
-
-      // Synthesize full 6-test suite so dashboard is NEVER empty
-      const hydrated = hydrateEvaluationData({ isFallback: true }, targetUrl.trim());
-      onEvaluationComplete?.(hydrated);
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      setEvaluationStatus(`❌ ${errorMsg}`);
+      setEvaluating(false);
     } finally {
       abortControllerRef.current = null;
       setEvaluating(false);
     }
-  }, [targetUrl, apiKey, onEvaluationComplete]);
+  }, [targetUrl, apiKey, onEvaluationComplete, runInstantValidation]);
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (abortControllerRef.current) abortControllerRef.current.abort();
@@ -325,7 +308,7 @@ export function EvaluationPanel({
                   validationError
                     ? 'border-2 border-[#EF4444] shadow-[0_0_15px_rgba(239,68,68,0.4)] animate-shake'
                     : 'border border-[#00E5FF]/30 focus:border-[#00E5FF] focus:shadow-[0_0_15px_rgba(0,229,255,0.25)]'
-                } ${isShaking ? 'animate-shake' : ''}`}
+                }`}
               />
             </div>
 
@@ -344,7 +327,7 @@ export function EvaluationPanel({
                   validationError
                     ? 'border-2 border-[#EF4444] shadow-[0_0_15px_rgba(239,68,68,0.4)] animate-shake'
                     : 'border border-[#00E5FF]/30 focus:border-[#00E5FF] focus:shadow-[0_0_15px_rgba(0,229,255,0.25)]'
-                } ${isShaking ? 'animate-shake' : ''}`}
+                }`}
               />
             </div>
 
@@ -354,12 +337,8 @@ export function EvaluationPanel({
               Evaluation takes ~25-35s on cold start.
             </div>
 
-            {/* ═════════════════════════════════════════════════════════════
-               CYBER RED-TEAM TELEMETRY OVERLAY (While evaluating up to 40s)
-               ═════════════════════════════════════════════════════════════ */}
             {evaluating && (
               <div className="my-4 p-5 rounded-xl border border-[#00E5FF]/40 bg-[#01091D]/95 backdrop-blur-md shadow-[0_0_35px_rgba(0,229,255,0.18)]">
-                {/* Header timer and badge */}
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
                     <span className="w-2.5 h-2.5 rounded-full bg-[#00E5FF] animate-ping" />
@@ -373,7 +352,6 @@ export function EvaluationPanel({
                   </div>
                 </div>
 
-                {/* Animated progress bar */}
                 <div className="w-full bg-[#021233] rounded-full h-2.5 mb-3 overflow-hidden border border-[#00E5FF]/30">
                   <div
                     className="h-full bg-gradient-to-r from-[#00E5FF] via-[#10B981] to-[#FFEE55] transition-all duration-150 rounded-full"
@@ -381,7 +359,6 @@ export function EvaluationPanel({
                   />
                 </div>
 
-                {/* Milestone progression chips */}
                 <div className="grid grid-cols-4 gap-2 text-[10px] font-mono text-center mb-4">
                   <span className={elapsedSeconds >= 0 ? 'text-[#00E5FF] font-bold' : 'text-[#7595b4]'}>
                     01. Handshake
@@ -397,9 +374,7 @@ export function EvaluationPanel({
                   </span>
                 </div>
 
-                {/* Radar Sweep + Live Terminal Stream */}
                 <div className="grid grid-cols-1 md:grid-cols-[140px_1fr] gap-4 items-center bg-[#021233]/70 p-3 rounded-lg border border-[#00E5FF]/20">
-                  {/* SVG Radar Sweep */}
                   <div className="flex justify-center">
                     <svg width="110" height="110" viewBox="0 0 100 100" className="overflow-visible">
                       <circle cx="50" cy="50" r="45" fill="none" stroke="#00E5FF" strokeWidth="1" opacity="0.25" />
@@ -408,13 +383,11 @@ export function EvaluationPanel({
                       <line x1="50" y1="5" x2="50" y2="95" stroke="#00E5FF" strokeWidth="0.8" opacity="0.25" />
                       <line x1="5" y1="50" x2="95" y2="50" stroke="#00E5FF" strokeWidth="0.8" opacity="0.25" />
 
-                      {/* Expanding pulse ring */}
                       <circle cx="50" cy="50" r="10" fill="none" stroke="#00E5FF" strokeWidth="1.5">
                         <animate attributeName="r" from="10" to="45" dur="2.4s" repeatCount="indefinite" />
                         <animate attributeName="opacity" from="0.8" to="0" dur="2.4s" repeatCount="indefinite" />
                       </circle>
 
-                      {/* Rotating radar sweep arm */}
                       <g className="animate-radar">
                         <line x1="50" y1="50" x2="50" y2="5" stroke="#00E5FF" strokeWidth="2" strokeLinecap="round" />
                         <path d="M 50 50 L 50 5 A 45 45 0 0 1 85 20 Z" fill="rgba(0, 229, 255, 0.18)" />
@@ -425,7 +398,6 @@ export function EvaluationPanel({
                     </svg>
                   </div>
 
-                  {/* Terminal log feed */}
                   <div className="font-mono text-[11px] leading-relaxed space-y-1 overflow-hidden">
                     <div className="flex items-center gap-1 text-[#83a2c1] text-[10px] mb-1">
                       <Terminal className="w-3 h-3 text-[#00E5FF]" />
