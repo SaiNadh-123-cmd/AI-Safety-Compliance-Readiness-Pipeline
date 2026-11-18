@@ -162,6 +162,7 @@ export function EvaluationPanel({
       }
 
       const submitData = (await res.json()) as Record<string, unknown>;
+      console.log("LIVE EVAL RESPONSE:", submitData);
       const runId = submitData.runId;
 
       if (!runId) throw new Error('No runId returned from backend');
@@ -187,6 +188,7 @@ export function EvaluationPanel({
             });
             if (pollRes.ok) {
               const pollData = (await pollRes.json()) as Record<string, unknown>;
+              console.log("LIVE EVAL POLL:", pollData);
               if (pollData.status === 'completed' || pollData.status === 'failed') {
                 finalRawData = pollData;
                 break;
@@ -208,7 +210,7 @@ export function EvaluationPanel({
       const elapsed = ((performance.now() - startTime) / 1000).toFixed(1);
       setEvaluationStatus(`✅ Live Evaluation Completed in ${elapsed}s!`);
 
-      // Pass raw backend data through — no fake hydration, no mock data
+      // Pass raw backend data through — no fake hydration, no mock data, never overwrite with defaults
       const run: EvaluationRun = {
         runId: String(finalRawData.runId || runId),
         status: (finalRawData.status as EvaluationRun['status']) || 'completed',
@@ -221,7 +223,9 @@ export function EvaluationPanel({
         results: Array.isArray(finalRawData.results) ? finalRawData.results as EvaluateResult[] : [],
         generatedAt: String(finalRawData.generatedAt || new Date().toISOString()),
         ...(typeof finalRawData.error === 'string' && finalRawData.error.length > 0 ? { error: finalRawData.error } : {}),
-        ...(typeof finalRawData.downloads === 'object' && finalRawData.downloads !== null ? { downloads: finalRawData.downloads } : {}),
+        ...(typeof finalRawData.downloads === 'object' && finalRawData.downloads !== null
+          ? { downloads: finalRawData.downloads as { json: string; pdf: string; csv: string } }
+          : {}),
       };
 
       onEvaluationComplete?.(run);
