@@ -282,11 +282,10 @@ export function EvaluationPanel({
 
           {/* High-visibility diagnostic error banner */}
           {validationError && (
-            <div
-              role="alert"
-              className="mt-3 bg-[#EF4444] text-white border border-[#FCA5A5] rounded-lg p-3 text-xs font-bold leading-relaxed shadow-[0_0_20px_rgba(239,68,68,0.5)] animate-shake"
-            >
-              {validationError}
+            <div className="w-full max-w-2xl mx-auto mt-6 bg-[#EF4444]/10 border border-[#EF4444] rounded-lg p-5 backdrop-blur-md shadow-[0_0_20px_rgba(239,68,68,0.2)]">
+              <p className="text-[#EF4444] font-mono text-sm md:text-base text-center break-words whitespace-normal leading-relaxed">
+                {validationError}
+              </p>
             </div>
           )}
 

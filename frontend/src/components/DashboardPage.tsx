@@ -733,8 +733,9 @@ export function DashboardPage({
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.45, delay: 0.05 }}
-            className="cyber-card rounded-2xl bg-[#041230]/90 border border-[#00E5FF]/30 p-5 shadow-[0_10px_30px_rgba(0,0,0,0.4)]"
+            className="relative group perspective-[1200px] transform-gpu transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] hover:-translate-y-3 hover:shadow-[0_30px_60px_rgba(0,229,255,0.15)] hover:border-[#00E5FF]/50 hover:z-10 cyber-card rounded-2xl bg-[#041230]/90 border border-[#00E5FF]/30 p-5 shadow-[0_10px_30px_rgba(0,0,0,0.4)]"
           >
+            <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-[#00E5FF]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none rounded-xl"></div>
             <div className="flex items-center justify-between mb-2">
               <span className="text-[11px] font-mono text-[#83a2c1] uppercase font-bold tracking-wider">
                 Total Red-Team Probes
@@ -756,8 +757,9 @@ export function DashboardPage({
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.45, delay: 0.12 }}
-            className="cyber-card rounded-2xl bg-[#041230]/90 border border-[#10B981]/30 p-5 shadow-[0_10px_30px_rgba(0,0,0,0.4)]"
+            className="relative group perspective-[1200px] transform-gpu transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] hover:-translate-y-3 hover:shadow-[0_30px_60px_rgba(0,229,255,0.15)] hover:border-[#00E5FF]/50 hover:z-10 cyber-card rounded-2xl bg-[#041230]/90 border border-[#10B981]/30 p-5 shadow-[0_10px_30px_rgba(0,0,0,0.4)]"
           >
+            <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-[#00E5FF]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none rounded-xl"></div>
             <div className="flex items-center justify-between mb-2">
               <span className="text-[11px] font-mono text-[#83a2c1] uppercase font-bold tracking-wider">
                 Passed Safeguards
@@ -780,8 +782,9 @@ export function DashboardPage({
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.45, delay: 0.19 }}
-            className="cyber-card rounded-2xl bg-[#041230]/90 border border-[#EF4444]/30 p-5 shadow-[0_10px_30px_rgba(0,0,0,0.4)]"
+            className="relative group perspective-[1200px] transform-gpu transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] hover:-translate-y-3 hover:shadow-[0_30px_60px_rgba(0,229,255,0.15)] hover:border-[#00E5FF]/50 hover:z-10 cyber-card rounded-2xl bg-[#041230]/90 border border-[#EF4444]/30 p-5 shadow-[0_10px_30px_rgba(0,0,0,0.4)]"
           >
+            <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-[#00E5FF]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none rounded-xl"></div>
             <div className="flex items-center justify-between mb-2">
               <span className="text-[11px] font-mono text-[#83a2c1] uppercase font-bold tracking-wider">
                 Critical / Failed
@@ -806,8 +809,9 @@ export function DashboardPage({
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.45, delay: 0.26 }}
-            className="cyber-card rounded-2xl bg-[#041230]/90 border border-[#FFEE55]/30 p-5 shadow-[0_10px_30px_rgba(0,0,0,0.4)]"
+            className="relative group perspective-[1200px] transform-gpu transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] hover:-translate-y-3 hover:shadow-[0_30px_60px_rgba(0,229,255,0.15)] hover:border-[#00E5FF]/50 hover:z-10 cyber-card rounded-2xl bg-[#041230]/90 border border-[#FFEE55]/30 p-5 shadow-[0_10px_30px_rgba(0,0,0,0.4)]"
           >
+            <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-[#00E5FF]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none rounded-xl"></div>
             <div className="flex items-center justify-between mb-2">
               <span className="text-[11px] font-mono text-[#83a2c1] uppercase font-bold tracking-wider">
                 Safety Readiness Score
@@ -835,8 +839,9 @@ export function DashboardPage({
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.15 }}
-            className="cyber-card rounded-2xl bg-[#041230]/95 border border-[#00E5FF]/30 p-6 flex flex-col justify-between"
+            className="relative group perspective-[1200px] transform-gpu transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] hover:-translate-y-3 hover:shadow-[0_30px_60px_rgba(0,229,255,0.15)] hover:border-[#00E5FF]/50 hover:z-10 cyber-card rounded-2xl bg-[#041230]/95 border border-[#00E5FF]/30 p-6 flex flex-col justify-between"
           >
+            <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-[#00E5FF]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none rounded-xl"></div>
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h2 className="text-base font-bold text-white font-['Space_Grotesk']">Safety & Guardrail Index</h2>
@@ -852,8 +857,9 @@ export function DashboardPage({
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.22 }}
-            className="cyber-card rounded-2xl bg-[#041230]/95 border border-[#00E5FF]/30 p-6 flex flex-col justify-between"
+            className="relative group perspective-[1200px] transform-gpu transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] hover:-translate-y-3 hover:shadow-[0_30px_60px_rgba(0,229,255,0.15)] hover:border-[#00E5FF]/50 hover:z-10 cyber-card rounded-2xl bg-[#041230]/95 border border-[#00E5FF]/30 p-6 flex flex-col justify-between"
           >
+            <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-[#00E5FF]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none rounded-xl"></div>
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h2 className="text-base font-bold text-white font-['Space_Grotesk']">Attack Surface Radar</h2>
@@ -869,8 +875,9 @@ export function DashboardPage({
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.29 }}
-            className="cyber-card rounded-2xl bg-[#041230]/95 border border-[#00E5FF]/30 p-6 flex flex-col justify-between"
+            className="relative group perspective-[1200px] transform-gpu transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] hover:-translate-y-3 hover:shadow-[0_30px_60px_rgba(0,229,255,0.15)] hover:border-[#00E5FF]/50 hover:z-10 cyber-card rounded-2xl bg-[#041230]/95 border border-[#00E5FF]/30 p-6 flex flex-col justify-between"
           >
+            <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-[#00E5FF]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none rounded-xl"></div>
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h2 className="text-base font-bold text-white font-['Space_Grotesk']">Groq Latency Telemetry</h2>
@@ -891,8 +898,9 @@ export function DashboardPage({
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.2 }}
-            className="cyber-card rounded-2xl bg-[#041230]/95 border border-[#00E5FF]/30 p-6"
+            className="relative group perspective-[1200px] transform-gpu transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] hover:-translate-y-3 hover:shadow-[0_30px_60px_rgba(0,229,255,0.15)] hover:border-[#00E5FF]/50 hover:z-10 cyber-card rounded-2xl bg-[#041230]/95 border border-[#00E5FF]/30 p-6"
           >
+            <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-[#00E5FF]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none rounded-xl"></div>
             <div className="flex items-center justify-between mb-4">
               <div>
                 <div className="text-[10px] font-mono text-[#00E5FF] uppercase font-bold tracking-wider">
@@ -945,8 +953,9 @@ export function DashboardPage({
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.25 }}
-            className="cyber-card rounded-2xl bg-[#041230]/95 border border-[#00E5FF]/30 p-6 flex flex-col justify-between"
+            className="relative group perspective-[1200px] transform-gpu transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] hover:-translate-y-3 hover:shadow-[0_30px_60px_rgba(0,229,255,0.15)] hover:border-[#00E5FF]/50 hover:z-10 cyber-card rounded-2xl bg-[#041230]/95 border border-[#00E5FF]/30 p-6 flex flex-col justify-between"
           >
+            <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-[#00E5FF]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none rounded-xl"></div>
             <div>
               <div className="flex items-center justify-between mb-4">
                 <div>
@@ -1076,10 +1085,11 @@ export function DashboardPage({
                   initial={{ opacity: 0, y: 25 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.4, delay: idx * 0.06 }}
-                  className={`cyber-card rounded-2xl bg-[#041230]/90 p-5 md:p-6 border transition-all duration-300 ${
+                  className={`relative group perspective-[1200px] transform-gpu transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] hover:-translate-y-3 hover:shadow-[0_30px_60px_rgba(0,229,255,0.15)] hover:border-[#00E5FF]/50 hover:z-10 cyber-card rounded-2xl bg-[#041230]/90 p-5 md:p-6 border transition-all duration-300 ${
                     isPass ? 'border-[#00E5FF]/25 hover:border-[#10B981]/50' : 'border-[#EF4444]/40 hover:border-[#EF4444]'
                   }`}
                 >
+                  <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-[#00E5FF]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none rounded-xl"></div>
                   {/* Card Header */}
                   <div className="flex flex-wrap items-center justify-between gap-2 mb-4 pb-3 border-b border-[#00E5FF]/15">
                     <div className="flex items-center gap-3">
