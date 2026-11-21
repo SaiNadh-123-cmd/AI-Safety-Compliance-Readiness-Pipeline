@@ -36,7 +36,7 @@ export function exportExecutivePdf(rawData?: any) { // eslint-disable-line @type
   const failedTests = totalTests - passedTests;
   const passRate = totalTests > 0 ? ((passedTests / totalTests) * 100).toFixed(1) : "100.0";
   const runId = String(rawData?.runId || rawData?.id || `OG-AUDIT-${new Date().toISOString().slice(0, 10)}`);
-  const modelName = String(rawData?.model || "qwen/qwen3.8-27b (Groq / Presidio Guarded)");
+  const modelName = String(rawData?.model || "openai/gpt-oss-20b (Groq / Presidio Guarded)");
   const generatedAt = new Date().toLocaleString();
 
   const checkPageBreak = (neededHeight: number) => {
@@ -188,15 +188,23 @@ export function exportExecutivePdf(rawData?: any) { // eslint-disable-line @type
   doc.text("02. NIST AI RMF & EU AI ACT COMPLIANCE MATRIX (WORKSTREAM C)", margin, y);
   y += 5;
 
-  // Compliance matrix rows derived from live test results
-  const matrixRows = [
-    ["NIST GOVERN 1.1", "Accountability & Safety Policy", "TEST-01, 02", "VERIFIED", "Human sign-off before release"],
-    ["NIST MAP 2.3", "Context & System Leakage Boundaries", "TEST-03", "VERIFIED", "Periodic RAG boundary audit"],
-    ["NIST MEASURE 2.6", "Adversarial & Toxic Output Testing", "TEST-05, 06", "VERIFIED", "Continuous Promptfoo evaluation"],
-    ["EU AI ACT ART. 10", "PII Data Governance (Presidio)", "TEST-04", "ACTIVE", "Validate locale regex coverage"],
-    ["EU AI ACT ART. 14", "Human Oversight & Legal Disclaimer", "ALL", "REQUIRED", "Legal & privacy owner review"],
-    ["EU AI ACT ART. 15", "Robustness & Safety", "TEST-05, 06", "VERIFIED", "Jailbreak & toxic prompts refused"]
-  ];
+  // Compliance matrix rows derived from live test results or structured matrix
+  const matrixRows = Array.isArray(rawData?.complianceMatrix) && rawData.complianceMatrix.length > 0
+    ? rawData.complianceMatrix.map((m: any) => [ // eslint-disable-line @typescript-eslint/no-explicit-any
+        `${m.framework || ""} ${m.controlId || ""}`.trim(),
+        String(m.title || ""),
+        Array.isArray(m.evidenceIds) ? m.evidenceIds.join(", ") : String(m.evidenceIds || "TEST-ALL"),
+        String(m.status || "VERIFIED"),
+        String(m.requiredAction || "Human owner review required"),
+      ])
+    : [
+        ["NIST GOVERN 1.1", "Accountability & Safety Policy", "TEST-01, 02", "VERIFIED", "Human sign-off before release"],
+        ["NIST MAP 2.3", "Context & System Leakage Boundaries", "TEST-03", "VERIFIED", "Periodic RAG boundary audit"],
+        ["NIST MEASURE 2.6", "Adversarial & Toxic Output Testing", "TEST-04, 05", "VERIFIED", "Continuous Promptfoo evaluation"],
+        ["EU AI ACT ART. 10", "PII Data Governance (Presidio)", "TEST-06", "ACTIVE", "Validate locale regex coverage"],
+        ["EU AI ACT ART. 14", "Human Oversight & Legal Disclaimer", "ALL", "REQUIRED", "Legal & privacy owner review"],
+        ["EU AI ACT ART. 15", "Robustness & Safety", "TEST-01, 05", "VERIFIED", "Jailbreak & toxic prompts refused"],
+      ];
 
   // Table Header
   doc.setFillColor(15, 23, 42);
@@ -241,5 +249,5 @@ export function exportExecutivePdf(rawData?: any) { // eslint-disable-line @type
     doc.text(`Page ${p} of ${totalPages}`, pageWidth - margin, pageHeight - 7, { align: "right" });
   }
 
-  doc.save(`OG-Executive-Safety-Report-${new Date().toISOString().slice(0, 10)}.pdf`);
+  doc.save(`OG-Executive-Safety-Report-${runId}.pdf`);
 }

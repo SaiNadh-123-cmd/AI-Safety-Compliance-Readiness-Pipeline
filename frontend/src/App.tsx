@@ -184,16 +184,17 @@ export function App() {
       Promise.race([p, new Promise<T>((_, reject) => setTimeout(() => reject(new Error('timeout')), ms))]);
 
     async function callBackend(): Promise<string> {
-      const base = (import.meta.env.VITE_BACKEND_ORIGIN as string | undefined) || '';
-      if (!base) return '';
+      const base =
+        (import.meta.env.VITE_BACKEND_ORIGIN as string | undefined) ||
+        'https://og-ai-safety-backend.onrender.com';
       const res = await fetch(`${base}/api/pii-chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: masked, model: 'qwen/qwen3.8-27b', masked: true }),
+        body: JSON.stringify({ message: raw, model: 'openai/gpt-oss-20b' }),
       });
       if (!res.ok) throw new Error(`backend ${res.status}`);
       const data = await res.json();
-      return String(data.reply ?? data.message ?? data.content ?? data.response ?? '').trim();
+      return String(data.safeOutput ?? data.reply ?? data.message ?? data.content ?? data.response ?? '').trim();
     }
 
     async function callGroq(): Promise<string> {
@@ -203,7 +204,7 @@ export function App() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
         body: JSON.stringify({
-          model: 'qwen/qwen3.8-27b',
+          model: 'openai/gpt-oss-20b',
           messages: [
             { role: 'system', content: systemPrompt },
             { role: 'user', content: userPrompt },
@@ -217,16 +218,16 @@ export function App() {
       return String(data.choices?.[0]?.message?.content ?? '').trim();
     }
 
-    // Stage 3 — backend and Groq raced in parallel under a hard 3s deadline
+    // Stage 3 — backend and Groq raced in parallel under a 12s deadline
     let live = '';
     let source = '';
     try {
-      const backend = withTimeout(callBackend().catch(() => ''), 3000);
-      const groq = withTimeout(callGroq().catch(() => ''), 3000);
-      const hard = new Promise<string[]>((resolve) => setTimeout(() => resolve(['', '']), 3000));
+      const backend = withTimeout(callBackend().catch(() => ''), 12000);
+      const groq = withTimeout(callGroq().catch(() => ''), 12000);
+      const hard = new Promise<string[]>((resolve) => setTimeout(() => resolve(['', '']), 12000));
       const [b, g] = await Promise.race([Promise.all([backend, groq]), hard]);
-      if (b) { live = b; source = 'BACKEND /api/pii-chat'; }
-      else if (g) { live = g; source = 'GROQ qwen/qwen3.8-27b'; }
+      if (b) { live = b; source = 'BACKEND /api/pii-chat (openai/gpt-oss-20b)'; }
+      else if (g) { live = g; source = 'GROQ openai/gpt-oss-20b'; }
     } catch {
       live = '';
     }

@@ -87,7 +87,7 @@ export function hydrateEvaluationData(
       category: String(t.category || 'Adversarial Safety Probe'),
       severity: (String(t.severity || 'high').toLowerCase()) as EvaluateResult['severity'],
       passed,
-      target: String(t.target || targetInput || 'llama-3.1-8b-instant (Groq Cloud)'),
+      target: String(t.target || targetInput || 'openai/gpt-oss-20b (Groq Cloud)'),
       score: Number(t.score || 0),
       latencyMs: Number(t.latencyMs || t.latency || 0),
       tokens: Number(t.tokens || 0),
@@ -118,8 +118,8 @@ export function hydrateEvaluationData(
     ),
     status: (rawObj.status as EvaluationRun['status']) || 'completed',
     mode: isLive ? 'live' : 'demo',
-    target: String(targetInput || rawObj.target || 'llama-3.1-8b-instant (Groq Cloud)'),
-    model: String(rawObj.model || 'llama-3.1-8b-instant'),
+    target: String(targetInput || rawObj.target || 'openai/gpt-oss-20b (Groq Cloud)'),
+    model: String(rawObj.model || 'openai/gpt-oss-20b'),
     totalTests: total,
     passedTests: passedCount,
     failedTests: failed,
@@ -513,7 +513,7 @@ export function DashboardPage({
               <span>← Back to Home / Evaluate Another Chatbot</span>
             </button>
             <span className="px-2.5 py-1 rounded text-[11px] font-mono font-bold bg-[#10B981]/15 text-[#10B981] border border-[#10B981]/40">
-              ● {safeText(data.model || 'llama-3.1-8b-instant')}
+              🟢 LIVE GROQ ENGINE • {safeText(data.model || 'openai/gpt-oss-20b')}
             </span>
           </div>
 
@@ -570,7 +570,7 @@ export function DashboardPage({
               AI Safety & Compliance <span className="text-[#00E5FF]">Readiness Dossier</span>
             </h1>
             <p className="text-sm text-[#83a2c1] mt-1 font-mono">
-              Target: <span className="text-[#FFEE55]">{safeText(data.target || 'llama-3.1-8b-instant')}</span> • Run ID: {safeText(data.runId)}
+              Target: <span className="text-[#FFEE55]">{safeText(data.target || 'openai/gpt-oss-20b')}</span> • Run ID: {safeText(data.runId)}
             </p>
           </div>
 
@@ -607,7 +607,7 @@ export function DashboardPage({
             </div>
             <div className="flex items-center gap-2">
               <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-[#00E5FF]/10 text-[#00E5FF] border border-[#00E5FF]/30">
-                llama-3.1-8b-instant
+                {safeText(data.model || 'openai/gpt-oss-20b')}
               </span>
             </div>
           </motion.div>

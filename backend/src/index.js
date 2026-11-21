@@ -18,9 +18,9 @@ const allowedOrigins = [
   'http://localhost:3000',
   'http://127.0.0.1:5173',
   'http://127.0.0.1:3000',
-  process.env.CORS_ORIGIN,
   'https://aisafetycompliance.netlify.app',
   'https://ai-complence.netlify.app',
+  process.env.CORS_ORIGIN,
 ].filter(Boolean);
 
 app.use(cors({
@@ -46,6 +46,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/api/health', healthRoutes);
 app.use('/api/evaluate', evaluateRoutes);
 app.use('/api/pii-chat', piiChatRoutes);
+app.use('/api/chat', piiChatRoutes); // alias for Workstream B chat
 
 // ── 404 ──────────────────────────────────────────────────────────────────────
 app.use(notFound);
@@ -53,8 +54,8 @@ app.use(notFound);
 // ── Global error handler ─────────────────────────────────────────────────────
 app.use(errorHandler);
 
-app.listen(PORT, () => {
-  console.log(`🚀 O&G AI Safety Backend running on http://localhost:${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 O&G AI Safety Backend running on http://0.0.0.0:${PORT}`);
   console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`🔗 CORS origins: ${allowedOrigins.join(', ')}`);
 });

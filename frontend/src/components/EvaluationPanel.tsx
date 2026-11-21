@@ -50,7 +50,7 @@ const isDummyApiKey = (key: string): boolean => {
 const TERMINAL_LINES = [
   '[00.2s] Handshaking with Target Endpoint & Verifying SSL/TLS...',
   '[03.0s] Waking Cloud Evaluation Engine & Loading promptfoo.yaml Suite...',
-  '[07.5s] Executing Probe 01/06: DAN Jailbreak & Instruction Override via Groq (llama-3.1-8b-instant)...',
+  '[07.5s] Executing Probe 01/06: DAN Jailbreak & Instruction Override via Groq (openai/gpt-oss-20b)...',
   '[12.0s] Executing Probe 02/06: System Prompt & Hidden RAG Context Extraction...',
   '[16.5s] Executing Probe 03/06: Microsoft Presidio Two-Sided PII Tunnel Scan...',
   '[21.0s] Executing Probe 04/06: Hate Speech & Toxic Output Boundary Check...',
@@ -145,7 +145,7 @@ export function EvaluationPanel({
       const requestPayload: EvaluateRequest = {
         targetUrl: targetUrl.trim() || undefined,
         apiKey: apiKey.trim() || undefined,
-        model: 'llama-3.1-8b-instant',
+        model: 'openai/gpt-oss-20b',
         tests: [], // Let backend use its default 6-test suite
       };
 
@@ -216,7 +216,7 @@ export function EvaluationPanel({
         status: (finalRawData.status as EvaluationRun['status']) || 'completed',
         mode: 'live',
         target: String(finalRawData.target || targetUrl.trim() || 'O&G Enterprise Assistant'),
-        model: String(finalRawData.model || 'llama-3.1-8b-instant'),
+        model: String(finalRawData.model || 'openai/gpt-oss-20b'),
         totalTests: Number(finalRawData.totalTests) || 0,
         passedTests: Number(finalRawData.passedTests) || 0,
         failedTests: Number(finalRawData.failedTests) || 0,
@@ -264,26 +264,26 @@ export function EvaluationPanel({
           </div>
           <p>
             Real-time adversarial probe execution via Promptfoo & Groq{' '}
-            <code className="text-[#00E5FF] font-mono text-xs">llama-3.1-8b-instant</code>.
+            <code className="text-[#00E5FF] font-mono text-xs">openai/gpt-oss-20b</code>.
           </p>
-
-          {/* High-visibility diagnostic error banner */}
-          {validationError && (
-            <div className="w-full max-w-2xl mx-auto mt-6 bg-[#EF4444]/10 border border-[#EF4444] rounded-lg p-5 backdrop-blur-md shadow-[0_0_20px_rgba(239,68,68,0.2)]">
-              <p className="text-[#EF4444] font-mono text-sm md:text-base text-center break-words whitespace-normal leading-relaxed">
-                {validationError}
-              </p>
-            </div>
-          )}
 
           {/* Evaluation status feedback */}
           {evaluationStatus && (
-            <div className="mt-3 flex items-center gap-2 text-[#00E5FF] font-mono text-xs">
+            <div className="mt-3 flex items-center gap-2 text-[#00E5FF] font-mono text-xs col-span-full">
               <span className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse" />
               <span>{evaluationStatus}</span>
             </div>
           )}
         </div>
+
+        {/* High-visibility diagnostic error banner (full width callout bar outside section-intro grid) */}
+        {validationError && (
+          <div className="w-full max-w-3xl mx-auto -mt-6 mb-8 bg-[#EF4444]/15 border-2 border-[#EF4444] rounded-xl p-4 md:p-5 backdrop-blur-md shadow-[0_0_30px_rgba(239,68,68,0.35)] animate-shake">
+            <p className="text-[#EF4444] font-mono text-xs md:text-sm text-center break-words whitespace-normal leading-relaxed font-bold">
+              {validationError}
+            </p>
+          </div>
+        )}
 
         <div className="eval-card cyber-card">
           <div className="eval-header">
@@ -292,7 +292,7 @@ export function EvaluationPanel({
               <h3 className="text-white font-bold text-base">Target Endpoint & Probe Engine</h3>
             </div>
             <span className="mode-pill live text-[10px] font-mono font-bold tracking-wider">
-              ● Groq Cloud / llama-3.1-8b-instant
+              ● Groq Cloud / openai/gpt-oss-20b
             </span>
           </div>
 
@@ -337,8 +337,8 @@ export function EvaluationPanel({
 
             <div className="text-[11px] text-[#7595b4] mb-4">
               Leave URL empty to evaluate our live enterprise target model (
-              <span className="text-[#00E5FF] font-mono">llama-3.1-8b-instant</span>).
-              Evaluation takes ~25-35s on cold start.
+              <span className="text-[#00E5FF] font-mono">openai/gpt-oss-20b</span>).
+              Evaluation takes ~10-25s.
             </div>
 
             {evaluating && (
