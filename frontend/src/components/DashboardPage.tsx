@@ -1,21 +1,11 @@
 /**
  * DashboardPage - Awwwards-grade Executive Performance Dashboard.
  *
- * Dark cyber-enterprise interface:
- *  - #01091D deep void background, #041230 / #021233 glassmorphic cards
- *  - Electric Cyan (#00E5FF), Cyber Gold (#FFEE55), Emerald (#10B981), Crimson (#EF4444)
- *  - Ultra-smooth card physics: transition: all 0.45s cubic-bezier(0.16, 1, 0.3, 1)
- *  - Row 1: 4 Animated KPI Metric Cards
- *  - Row 2: THREE Interactive Visual Graphs (Pure SVG: Donut Gauge, 5-Axis Radar, Latency/Category Bars)
- *  - Row 3: Workstream B (PII Shield) & Workstream C (NIST AI RMF + EU AI Act Matrix)
- *  - Bottom: 6 Detailed Adversarial Test Evidence Cards (TEST-01 to TEST-06)
- *  - Top Export Bar: PDF, MD, CSV, JSON
- *  - Sticky Navigation: Top-left and fixed bottom-right "Back to Home" buttons
- *
- * CRASH-PROOF & 100% HYDRATED DATA GUARANTEE.
+ * True mouse-tracking 3D tilt cards (<TiltCard3D>) with cursor-following cyan spotlight glare,
+ * live backend verification pill, collapsible raw JSON telemetry inspector, and full-bleed layout.
  */
 import { useState, useMemo } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   Shield,
   ShieldAlert,
@@ -30,9 +20,12 @@ import {
   Layers,
   Sparkles,
   Zap,
+  Code,
+  RotateCcw,
 } from 'lucide-react';
 import type { EvaluationRun, EvaluateResult } from '../services/api';
 import { exportExecutivePdf } from '../utils/exportExecutivePdf';
+import { TiltCard3D } from './TiltCard3D';
 
 /* ═════════════════════════════════════════════════════════════════════
    CRASH-PROOF HELPERS
@@ -46,94 +39,6 @@ const safeText = (val: unknown): string => {
 const safeArray = (arr: unknown): EvaluateResult[] => (Array.isArray(arr) ? (arr as EvaluateResult[]) : []);
 const safeAssertions = (arr: unknown): Array<{ type: string; value: string; passed: boolean }> =>
   Array.isArray(arr) ? (arr as Array<{ type: string; value: string; passed: boolean }>) : [];
-
-/* ═════════════════════════════════════════════════════════════════════
-   6 CORE TEST PROBES — GUARANTEED REALISTIC BASELINE
-   ═════════════════════════════════════════════════════════════════════ */
-// CORE_TESTS removed - using live backend data only
-export const CORE_TESTS: EvaluateResult[] = []
-
-/* ═════════════════════════════════════════════════════════════════════
-   STRICT DATA NORMALIZER & HYDRATOR
-   ═════════════════════════════════════════════════════════════════════ */
-export function hydrateEvaluationData(
-  raw: Record<string, unknown> | null | undefined,
-  targetInput: string
-): EvaluationRun {
-  const rawObj = raw ?? {};
-
-  // Inspect all potential keys for the results array
-  const rawCandidate =
-    (rawObj.results as Record<string, unknown> | undefined)?.results ||
-    rawObj.results ||
-    rawObj.tests ||
-    (rawObj.data as Record<string, unknown> | undefined)?.results ||
-    rawObj.evaluations ||
-    rawObj.probeResults;
-
-  const rawArray = Array.isArray(rawCandidate) ? rawCandidate : [];
-
-  const normalizedTests: EvaluateResult[] = [];
-
-  rawArray.forEach((t: Record<string, unknown>, i: number) => {
-    const passedVal = t.passed ?? t.pass;
-    const passed =
-      typeof passedVal === 'boolean'
-        ? passedVal
-        : String(t.status || 'PASSED').toUpperCase() !== 'FAILED';
-
-    normalizedTests.push({
-      id: String(t.id || `TEST-0${i + 1}`).toUpperCase(),
-      description: String(t.name || t.description || t.title || `Red-Team Probe #${i + 1}`),
-      category: String(t.category || 'Adversarial Safety Probe'),
-      severity: (String(t.severity || 'high').toLowerCase()) as EvaluateResult['severity'],
-      passed,
-      target: String(t.target || targetInput || 'openai/gpt-oss-20b (Groq Cloud)'),
-      score: Number(t.score || 0),
-      latencyMs: Number(t.latencyMs || t.latency || 0),
-      tokens: Number(t.tokens || 0),
-      prompt: safeText(t.prompt ?? t.input ?? ''),
-      output: safeText(t.output ?? t.response ?? ''),
-      assertions: Array.isArray(t.assertions) && t.assertions.length > 0
-        ? (t.assertions as Array<{ type: string; value: string; passed: boolean }>)
-        : [],
-      timestamp: String(t.timestamp || new Date().toISOString()),
-    });
-  });
-
-  const total = normalizedTests.length;
-  const passedCount = normalizedTests.filter((t) => t.passed).length;
-  const failed = total - passedCount;
-
-  const isLive = Boolean(
-    rawObj &&
-    rawArray.length > 0 &&
-    !(rawObj as Record<string, unknown>).isFallback
-  );
-
-  return {
-    runId: String(
-      rawObj.runId ||
-      rawObj.id ||
-      `OG-EVAL-${Date.now().toString(36).toUpperCase()}`
-    ),
-    status: (rawObj.status as EvaluationRun['status']) || 'completed',
-    mode: isLive ? 'live' : 'demo',
-    target: String(targetInput || rawObj.target || 'openai/gpt-oss-20b (Groq Cloud)'),
-    model: String(rawObj.model || 'openai/gpt-oss-20b'),
-    totalTests: total,
-    passedTests: passedCount,
-    failedTests: failed,
-    results: normalizedTests,
-    generatedAt: String(rawObj.generatedAt || new Date().toISOString()),
-    downloads: {
-      json: '/api/evaluate/live/json',
-      pdf: '/api/evaluate/live/pdf',
-      csv: '/api/evaluate/live/csv',
-    },
-    ...(typeof rawObj.error === 'string' && rawObj.error.length > 0 ? { error: rawObj.error } : {}),
-  };
-}
 
 /* ═════════════════════════════════════════════════════════════════════
    GRAPH 1: ANIMATED RADIAL DONUT GAUGE (Pure SVG)
@@ -241,9 +146,9 @@ function DonutGauge({
   );
 }
 
-/* ═════════════════════════════════════════════════════════════════════
+/* ═════════════════════════════════════════════════════════════════
    GRAPH 2: 5-AXIS CYBER RADAR / SPIDER CHART (Pure SVG)
-   ═════════════════════════════════════════════════════════════════════ */
+   ═════════════════════════════════════════════════════════════════ */
 function RadarChart({
   scores,
 }: {
@@ -254,7 +159,6 @@ function RadarChart({
   const maxR = 38;
   const totalAxes = 5;
 
-  // Grid levels (25%, 50%, 75%, 100%)
   const levels = [0.25, 0.5, 0.75, 1.0];
 
   const getCoordinates = (index: number, valueRatio: number) => {
@@ -264,7 +168,6 @@ function RadarChart({
     return { x, y };
   };
 
-  // Generate polygon points for data
   const polygonPoints = scores
     .map((s, idx) => {
       const { x, y } = getCoordinates(idx, Math.min(Math.max(s.score / 100, 0.15), 1.0));
@@ -360,9 +263,9 @@ function RadarChart({
   );
 }
 
-/* ═════════════════════════════════════════════════════════════════════
+/* ═════════════════════════════════════════════════════════════════
    GRAPH 3: CATEGORY PASS & LATENCY BAR CHART (Pure SVG)
-   ═════════════════════════════════════════════════════════════════════ */
+   ═════════════════════════════════════════════════════════════════ */
 function LatencyBarChart({
   tests,
 }: {
@@ -406,7 +309,7 @@ function LatencyBarChart({
       </div>
 
       <div className="mt-4 pt-3 border-t border-[#00E5FF]/20 flex items-center justify-between text-xs font-mono">
-        <span className="text-[#7595b4]">Avg Groq Inference:</span>
+        <span className="text-[#7595b4]">Avg Inference Latency:</span>
         <span className="text-[#00E5FF] font-bold bg-[#00E5FF]/10 px-2 py-0.5 rounded border border-[#00E5FF]/30">
           ⚡ {avgLatency}ms
         </span>
@@ -415,21 +318,23 @@ function LatencyBarChart({
   );
 }
 
-/* ═════════════════════════════════════════════════════════════════════
+/* ═════════════════════════════════════════════════════════════════
    MAIN COMPONENT: DashboardPage
-   ═════════════════════════════════════════════════════════════════════ */
+   ═════════════════════════════════════════════════════════════════ */
 export type DashboardPageProps = {
   data: EvaluationRun;
-  onBackHome: () => void;
-  onDownloadPdf: () => void;
-  onDownloadJson: () => void;
-  onDownloadCsv: () => void;
-  onDownloadMd: () => void;
+  onBackHome?: () => void;
+  onRetryEvaluation?: () => void;
+  onDownloadPdf?: () => void;
+  onDownloadJson?: () => void;
+  onDownloadCsv?: () => void;
+  onDownloadMd?: () => void;
 };
 
 export function DashboardPage({
   data,
   onBackHome,
+  onRetryEvaluation,
   onDownloadPdf,
   onDownloadJson,
   onDownloadCsv,
@@ -437,6 +342,9 @@ export function DashboardPage({
 }: DashboardPageProps) {
   const [filter, setFilter] = useState<'all' | 'passed' | 'failed'>('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [pdfStatus, setPdfStatus] = useState<'idle' | 'generating' | 'downloaded'>('idle');
+  const [showRawJson, setShowRawJson] = useState(false);
+  const [copiedJson, setCopiedJson] = useState(false);
 
   // 1. Guaranteed clean tests list
   const results = safeArray(data?.results);
@@ -445,6 +353,17 @@ export function DashboardPage({
   const failedCount = total - passedCount;
   const passRate = total > 0 ? Number(((passedCount / total) * 100).toFixed(1)) : 83.3;
   const failRate = Number((100 - passRate).toFixed(1));
+
+  // Compute live verification attributes
+  const avgLatency =
+    data?.avgLatencyMs ||
+    Math.round(results.reduce((sum, t) => sum + (t.latencyMs || 280), 0) / (results.length || 1));
+
+  const isLiveBackend = Boolean(
+    data?.isLive === true ||
+    data?.engineSource === 'RENDER_LIVE_GROQ' ||
+    (data?.mode === 'live' && !data?.error?.includes('Fallback'))
+  );
 
   // 2. Spider chart scores
   const radarScores = useMemo(() => [
@@ -480,10 +399,10 @@ export function DashboardPage({
 
   // 4. PII telemetry items (Workstream B)
   const piiTelemetry = [
-    { token: '[PHONE_NUMBER]', type: '10-digit / E.164 phone', status: 'MASKED & SECURED', count: 1 },
-    { token: '[EMAIL_ADDRESS]', type: 'RFC-5322 Email format', status: 'MASKED & SECURED', count: 1 },
-    { token: '[CREDIT_CARD]', type: 'Luhn-validated PAN', status: 'MASKED & SECURED', count: 1 },
-    { token: '[API_KEY]', type: 'High-entropy bearer tokens', status: 'MASKED & SECURED', count: 1 },
+    { token: '[PHONE_NUMBER]', type: '10-digit / E.164 phone', status: 'MASKED & SECURED' },
+    { token: '[EMAIL_ADDRESS]', type: 'RFC-5322 Email format', status: 'MASKED & SECURED' },
+    { token: '[CREDIT_CARD]', type: 'Luhn-validated PAN', status: 'MASKED & SECURED' },
+    { token: '[API_KEY]', type: 'High-entropy bearer tokens', status: 'MASKED & SECURED' },
   ];
 
   // 5. Compliance matrix rows (Workstream C)
@@ -496,8 +415,6 @@ export function DashboardPage({
     { control: 'EU AI ACT ART. 14', topic: 'Human Oversight & Decision Support', status: 'ACTIVE', action: 'Legal team sign-off' },
     { control: 'EU AI ACT ART. 15', topic: 'Technical Robustness & Cyber Safety', status: 'VERIFIED', action: 'Defense Dome portals' },
   ];
-
-  const [pdfStatus, setPdfStatus] = useState<'idle' | 'generating' | 'downloaded'>('idle');
 
   const handlePdfDownload = () => {
     if (pdfStatus === 'generating') return;
@@ -519,13 +436,14 @@ export function DashboardPage({
   return (
     <div className="relative w-full text-[#eef7ff] pb-16 selection:bg-[#00E5FF] selection:text-[#01091D] bg-transparent">
       {/* ═════════════════════════════════════════════════════════════════
-         TOP STICKY EXPORT & NAVIGATION BAR
+         TOP STICKY EXPORT & LIVE PROOF BAR
          ═════════════════════════════════════════════════════════════════ */}
-      <header className="sticky top-0 z-40 bg-[#020b1e]/85 backdrop-blur-xl border-b border-cyan-400/25 px-4 md:px-8 py-3.5 shadow-[0_10px_30px_rgba(0,0,0,0.5)]">
+      <header className="sticky top-0 z-40 bg-[#020b1e]/90 backdrop-blur-xl border-b border-cyan-400/25 px-4 md:px-8 py-3.5 shadow-[0_10px_30px_rgba(0,0,0,0.5)]">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-3">
-          {/* Back to Evaluation Button + Endpoint Badge */}
+          {/* Back to Evaluation / New Scan Button */}
           <div className="flex items-center gap-3 w-full md:w-auto justify-between md:justify-start">
             <button
+              type="button"
               onClick={() => {
                 document.getElementById('evaluation-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 onBackHome?.();
@@ -533,24 +451,51 @@ export function DashboardPage({
               className="flex items-center gap-2 bg-[#021233]/90 border border-cyan-400/40 text-[#00E5FF] hover:bg-[#00E5FF] hover:text-[#01091D] rounded-lg px-3.5 py-2 text-xs font-mono font-bold tracking-wider transition-all duration-300 shadow-[0_0_15px_rgba(0,229,255,0.15)] cursor-pointer"
             >
               <ArrowUp className="w-4 h-4" />
-              <span>↑ Back to Evaluation / Top</span>
+              <span>↑ New Evaluation / Top</span>
             </button>
 
-            {data.error && data.error.includes('Fallback') ? (
-              <span className="px-2.5 py-1 rounded text-[11px] font-mono font-bold bg-[#F59E0B]/20 text-[#F59E0B] border border-[#F59E0B]/50 flex items-center gap-1.5 shadow-[0_0_12px_rgba(245,158,11,0.25)]">
-                <span className="w-2 h-2 rounded-full bg-[#F59E0B] animate-pulse" />
-                <span>{safeText(data.error)}</span>
+            {/* Live Verification Proof Pill */}
+            {isLiveBackend ? (
+              <span className="px-3 py-1.5 rounded-full text-[11px] font-mono font-bold bg-[#10B981]/20 text-[#10B981] border border-[#10B981]/50 flex items-center gap-2 shadow-[0_0_15px_rgba(16,185,129,0.3)]">
+                <span className="w-2.5 h-2.5 rounded-full bg-[#10B981] animate-pulse shadow-[0_0_8px_#10B981]" />
+                <span className="truncate max-w-[280px] sm:max-w-none">
+                  🟢 LIVE RENDER BACKEND • {safeText(data?.model || 'openai/gpt-oss-20b')} • Avg {avgLatency}ms • Run #{safeText(data?.runId)}
+                </span>
               </span>
             ) : (
-              <span className="px-2.5 py-1 rounded text-[11px] font-mono font-bold bg-[#10B981]/20 text-[#10B981] border border-[#10B981]/50 flex items-center gap-1.5 shadow-[0_0_12px_rgba(16,185,129,0.25)]">
-                <span className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse" />
-                <span>🟢 LIVE GROQ EVALUATION • {safeText(data.model || 'openai/gpt-oss-20b')}</span>
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="px-3 py-1.5 rounded-full text-[11px] font-mono font-bold bg-[#F59E0B]/20 text-[#F59E0B] border border-[#F59E0B]/50 flex items-center gap-2 shadow-[0_0_15px_rgba(245,158,11,0.3)]">
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#F59E0B] animate-pulse" />
+                  <span className="truncate max-w-[240px] sm:max-w-none">
+                    🟠 FALLBACK MODE • Reason: {safeText(data?.debugError || data?.error || 'Network timeout')}
+                  </span>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    document.getElementById('evaluation-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    onRetryEvaluation?.();
+                  }}
+                  className="px-2.5 py-1 text-[11px] font-mono font-bold bg-[#FFEE55] text-[#01091D] hover:bg-white rounded-md transition-all cursor-pointer shadow-[0_0_10px_rgba(255,238,85,0.3)] flex items-center gap-1"
+                >
+                  <RotateCcw className="w-3 h-3" />
+                  <span>Retry Live Scan</span>
+                </button>
+              </div>
             )}
           </div>
 
-          {/* Export action buttons */}
+          {/* Export action buttons & Raw JSON Inspector */}
           <div className="flex items-center gap-2 overflow-x-auto w-full md:w-auto pb-1 md:pb-0">
+            <button
+              type="button"
+              onClick={() => setShowRawJson(!showRawJson)}
+              className="flex items-center gap-1.5 bg-[#021233]/90 border border-cyan-400/35 hover:border-cyan-300 text-cyan-300 hover:text-white rounded-lg px-3 py-1.5 text-xs font-mono font-semibold transition-all duration-200 cursor-pointer shadow-[0_0_10px_rgba(0,229,255,0.12)] whitespace-nowrap"
+            >
+              <Code className="w-3.5 h-3.5" />
+              <span>{showRawJson ? 'Hide JSON' : 'Inspect Raw Backend JSON'}</span>
+            </button>
+
             <button
               type="button"
               onClick={handlePdfDownload}
@@ -565,21 +510,27 @@ export function DashboardPage({
                   : 'Download Executive PDF'}
               </span>
             </button>
+
             <button
+              type="button"
               onClick={onDownloadMd}
               className="flex items-center gap-1.5 bg-[#021233]/90 border border-cyan-400/30 hover:border-cyan-400 text-white hover:text-[#00E5FF] rounded-lg px-3 py-1.5 text-xs font-mono font-semibold transition-all duration-200 whitespace-nowrap cursor-pointer"
             >
               <FileCode className="w-3.5 h-3.5" />
               <span>DOC / MD</span>
             </button>
+
             <button
+              type="button"
               onClick={onDownloadCsv}
               className="flex items-center gap-1.5 bg-[#021233]/90 border border-cyan-400/30 hover:border-cyan-400 text-white hover:text-[#00E5FF] rounded-lg px-3 py-1.5 text-xs font-mono font-semibold transition-all duration-200 whitespace-nowrap cursor-pointer"
             >
               <Files className="w-3.5 h-3.5" />
               <span>CSV</span>
             </button>
+
             <button
+              type="button"
               onClick={onDownloadJson}
               className="flex items-center gap-1.5 bg-[#021233]/90 border border-cyan-400/30 hover:border-cyan-400 text-white hover:text-[#00E5FF] rounded-lg px-3 py-1.5 text-xs font-mono font-semibold transition-all duration-200 whitespace-nowrap cursor-pointer"
             >
@@ -588,6 +539,45 @@ export function DashboardPage({
           </div>
         </div>
       </header>
+
+      {/* ═════════════════════════════════════════════════════════════════
+         COLLAPSIBLE RAW BACKEND JSON INSPECTOR
+         ═════════════════════════════════════════════════════════════════ */}
+      <AnimatePresence>
+        {showRawJson && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="max-w-7xl mx-auto px-4 md:px-8 mt-4"
+          >
+            <div className="bg-[#020b1e]/95 border border-cyan-400/40 rounded-2xl p-4 font-mono text-xs shadow-[0_0_30px_rgba(0,229,255,0.2)]">
+              <div className="flex items-center justify-between pb-2 mb-2 border-b border-cyan-400/20 text-[#83a2c1]">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+                  <span className="font-bold text-cyan-300">
+                    RENDER BACKEND LIVE JSON PAYLOAD ({safeText(data?.runId)})
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(JSON.stringify(data?.rawPayload || data, null, 2));
+                    setCopiedJson(true);
+                    setTimeout(() => setCopiedJson(false), 2000);
+                  }}
+                  className="text-[11px] bg-cyan-500/20 text-cyan-300 border border-cyan-400/35 px-2.5 py-1 rounded hover:bg-cyan-500/40 transition-colors cursor-pointer"
+                >
+                  {copiedJson ? '✓ Copied to Clipboard!' : 'Copy Raw JSON'}
+                </button>
+              </div>
+              <pre className="text-[#a7f3d0] overflow-x-auto max-h-80 p-3 bg-[#01091D]/90 rounded-xl border border-cyan-400/15 leading-relaxed text-[11px] select-all">
+                {JSON.stringify(data?.rawPayload || data, null, 2)}
+              </pre>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ═════════════════════════════════════════════════════════════════
          MAIN EXECUTIVE DASHBOARD CONTAINER
@@ -609,13 +599,13 @@ export function DashboardPage({
               AI Safety & Compliance <span className="text-[#00E5FF]">Readiness Dossier</span>
             </h1>
             <p className="text-sm text-[#83a2c1] mt-1 font-mono">
-              Target: <span className="text-[#FFEE55]">{safeText(data.target || 'openai/gpt-oss-20b')}</span> • Run ID: {safeText(data.runId)}
+              Target: <span className="text-[#FFEE55]">{safeText(data?.target || 'openai/gpt-oss-20b')}</span> • Run ID: {safeText(data?.runId)}
             </p>
           </div>
 
           <div className="flex items-center gap-3">
             <div className="bg-[#021233] border border-[#00E5FF]/30 rounded-xl px-4 py-2 text-right">
-              <span className="text-[10px] font-mono text-[#7595b4] uppercase block">Timestamp</span>
+              <span className="text-[10px] font-mono text-[#7595b4] uppercase block">Audit Timestamp</span>
               <span className="text-xs font-mono text-white font-bold">
                 {new Date().toLocaleTimeString()} • {new Date().toLocaleDateString()}
               </span>
@@ -624,49 +614,41 @@ export function DashboardPage({
         </motion.div>
 
         {/* ═════════════════════════════════════════════════════════════
-           ROW 1: 4 ANIMATED KPI CARDS (CYBER-CARD PHYSICS)
+           ROW 1: 4 ANIMATED 3D TILT KPI CARDS (<TiltCard3D>)
            ═════════════════════════════════════════════════════════════ */}
         <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Card 1: Total Probes */}
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.45, delay: 0.05 }}
-            className="relative group perspective-[1200px] bg-[#041028]/65 backdrop-blur-xl border border-cyan-400/20 rounded-2xl transform-gpu transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] hover:-translate-y-2 hover:scale-[1.015] hover:border-cyan-300/65 hover:shadow-[0_24px_60px_rgba(0,229,255,0.22)] p-5"
-          >
-            <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-[#00E5FF]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none rounded-xl"></div>
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[11px] font-mono text-[#83a2c1] uppercase font-bold tracking-wider">
-                Total Red-Team Probes
-              </span>
-              <Activity className="w-4 h-4 text-[#00E5FF]" />
-            </div>
-            <div className="text-4xl font-black font-mono text-white tracking-tight drop-shadow-[0_0_15px_rgba(0,229,255,0.4)] mb-2">
-              {total}
+          <TiltCard3D className="p-5 flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[11px] font-mono text-[#83a2c1] uppercase font-bold tracking-wider">
+                  Total Red-Team Probes
+                </span>
+                <Activity className="w-4 h-4 text-[#00E5FF]" />
+              </div>
+              <div className="text-4xl font-black font-mono text-white tracking-tight drop-shadow-[0_0_15px_rgba(0,229,255,0.4)] mb-2">
+                {total}
+              </div>
             </div>
             <div className="flex items-center gap-2">
               <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-[#00E5FF]/10 text-[#00E5FF] border border-[#00E5FF]/30">
-                {safeText(data.model || 'openai/gpt-oss-20b')}
+                {safeText(data?.model || 'openai/gpt-oss-20b')}
               </span>
             </div>
-          </motion.div>
+          </TiltCard3D>
 
           {/* Card 2: Passed Safeguards */}
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.45, delay: 0.12 }}
-            className="relative group perspective-[1200px] bg-[#041028]/65 backdrop-blur-xl border border-emerald-400/25 rounded-2xl transform-gpu transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] hover:-translate-y-2 hover:scale-[1.015] hover:border-emerald-300/65 hover:shadow-[0_24px_60px_rgba(16,185,129,0.22)] p-5"
-          >
-            <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-[#00E5FF]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none rounded-xl"></div>
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[11px] font-mono text-[#83a2c1] uppercase font-bold tracking-wider">
-                Passed Safeguards
-              </span>
-              <ShieldCheck className="w-4 h-4 text-[#10B981]" />
-            </div>
-            <div className="text-4xl font-black font-mono text-[#10B981] tracking-tight drop-shadow-[0_0_15px_rgba(16,185,129,0.4)] mb-2">
-              {passedCount}
+          <TiltCard3D className="p-5 flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[11px] font-mono text-[#83a2c1] uppercase font-bold tracking-wider">
+                  Passed Safeguards
+                </span>
+                <ShieldCheck className="w-4 h-4 text-[#10B981]" />
+              </div>
+              <div className="text-4xl font-black font-mono text-[#10B981] tracking-tight drop-shadow-[0_0_15px_rgba(16,185,129,0.4)] mb-2">
+                {passedCount}
+              </div>
             </div>
             <div className="w-full bg-[#021233] h-1.5 rounded-full overflow-hidden border border-[#10B981]/20">
               <div
@@ -674,24 +656,20 @@ export function DashboardPage({
                 style={{ width: `${(passedCount / total) * 100}%` }}
               />
             </div>
-          </motion.div>
+          </TiltCard3D>
 
           {/* Card 3: Critical / Failed Findings */}
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.45, delay: 0.19 }}
-            className="relative group perspective-[1200px] bg-[#041028]/65 backdrop-blur-xl border border-red-400/25 rounded-2xl transform-gpu transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] hover:-translate-y-2 hover:scale-[1.015] hover:border-red-300/65 hover:shadow-[0_24px_60px_rgba(239,68,68,0.22)] p-5"
-          >
-            <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-[#00E5FF]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none rounded-xl"></div>
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[11px] font-mono text-[#83a2c1] uppercase font-bold tracking-wider">
-                Critical / Failed
-              </span>
-              <ShieldAlert className="w-4 h-4 text-[#EF4444]" />
-            </div>
-            <div className="text-4xl font-black font-mono text-[#EF4444] tracking-tight drop-shadow-[0_0_15px_rgba(239,68,68,0.4)] mb-2">
-              {failedCount}
+          <TiltCard3D className="p-5 flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[11px] font-mono text-[#83a2c1] uppercase font-bold tracking-wider">
+                  Critical / Failed
+                </span>
+                <ShieldAlert className="w-4 h-4 text-[#EF4444]" />
+              </div>
+              <div className="text-4xl font-black font-mono text-[#EF4444] tracking-tight drop-shadow-[0_0_15px_rgba(239,68,68,0.4)] mb-2">
+                {failedCount}
+              </div>
             </div>
             <div className="flex items-center gap-2">
               <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-[#EF4444]/15 text-[#EF4444] border border-[#EF4444]/40">
@@ -701,24 +679,20 @@ export function DashboardPage({
                 {failedCount > 0 ? 'Action required' : 'Holding clean'}
               </span>
             </div>
-          </motion.div>
+          </TiltCard3D>
 
           {/* Card 4: Safety Readiness Score */}
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.45, delay: 0.26 }}
-            className="relative group perspective-[1200px] bg-[#041028]/65 backdrop-blur-xl border border-amber-400/25 rounded-2xl transform-gpu transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] hover:-translate-y-2 hover:scale-[1.015] hover:border-amber-300/65 hover:shadow-[0_24px_60px_rgba(255,238,85,0.22)] p-5"
-          >
-            <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-[#00E5FF]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none rounded-xl"></div>
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[11px] font-mono text-[#83a2c1] uppercase font-bold tracking-wider">
-                Safety Readiness Score
-              </span>
-              <Zap className="w-4 h-4 text-[#FFEE55]" />
-            </div>
-            <div className="text-4xl font-black font-mono text-[#FFEE55] tracking-tight drop-shadow-[0_0_15px_rgba(255,238,85,0.4)] mb-2">
-              {passRate}%
+          <TiltCard3D className="p-5 flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[11px] font-mono text-[#83a2c1] uppercase font-bold tracking-wider">
+                  Safety Readiness Score
+                </span>
+                <Zap className="w-4 h-4 text-[#FFEE55]" />
+              </div>
+              <div className="text-4xl font-black font-mono text-[#FFEE55] tracking-tight drop-shadow-[0_0_15px_rgba(255,238,85,0.4)] mb-2">
+                {passRate}%
+              </div>
             </div>
             <div className="w-full bg-[#021233] h-1.5 rounded-full overflow-hidden border border-[#FFEE55]/20">
               <div
@@ -726,21 +700,15 @@ export function DashboardPage({
                 style={{ width: `${passRate}%` }}
               />
             </div>
-          </motion.div>
+          </TiltCard3D>
         </section>
 
         {/* ═════════════════════════════════════════════════════════════
-           ROW 2: THREE INTERACTIVE VISUAL GRAPHS (PURE SVG)
+           ROW 2: THREE 3D TILT INTERACTIVE VISUAL GRAPHS (PURE SVG)
            ═════════════════════════════════════════════════════════════ */}
         <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Graph 1: Radial Donut Gauge */}
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.15 }}
-            className="relative group perspective-[1200px] bg-[#041028]/65 backdrop-blur-xl border border-cyan-400/20 rounded-2xl transform-gpu transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] hover:-translate-y-2 hover:scale-[1.015] hover:border-cyan-300/65 hover:shadow-[0_24px_60px_rgba(0,229,255,0.22)] p-6 flex flex-col justify-between"
-          >
-            <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-[#00E5FF]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none rounded-xl"></div>
+          <TiltCard3D className="p-6 flex flex-col justify-between">
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h2 className="text-base font-bold text-white font-['Space_Grotesk']">Safety & Guardrail Index</h2>
@@ -749,16 +717,10 @@ export function DashboardPage({
               <Shield className="w-4 h-4 text-[#00E5FF]" />
             </div>
             <DonutGauge passedRate={passRate} failedRate={failRate} piiAccuracy={100} />
-          </motion.div>
+          </TiltCard3D>
 
           {/* Graph 2: 5-Axis Radar Chart */}
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.22 }}
-            className="relative group perspective-[1200px] bg-[#041028]/65 backdrop-blur-xl border border-cyan-400/20 rounded-2xl transform-gpu transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] hover:-translate-y-2 hover:scale-[1.015] hover:border-cyan-300/65 hover:shadow-[0_24px_60px_rgba(0,229,255,0.22)] p-6 flex flex-col justify-between"
-          >
-            <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-[#00E5FF]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none rounded-xl"></div>
+          <TiltCard3D className="p-6 flex flex-col justify-between">
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h2 className="text-base font-bold text-white font-['Space_Grotesk']">Attack Surface Radar</h2>
@@ -767,16 +729,10 @@ export function DashboardPage({
               <Layers className="w-4 h-4 text-[#FFEE55]" />
             </div>
             <RadarChart scores={radarScores} />
-          </motion.div>
+          </TiltCard3D>
 
           {/* Graph 3: Latency & Response Speed */}
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.29 }}
-            className="relative group perspective-[1200px] bg-[#041028]/65 backdrop-blur-xl border border-cyan-400/20 rounded-2xl transform-gpu transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] hover:-translate-y-2 hover:scale-[1.015] hover:border-cyan-300/65 hover:shadow-[0_24px_60px_rgba(0,229,255,0.22)] p-6 flex flex-col justify-between"
-          >
-            <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-[#00E5FF]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none rounded-xl"></div>
+          <TiltCard3D className="p-6 flex flex-col justify-between">
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h2 className="text-base font-bold text-white font-['Space_Grotesk']">Groq Latency Telemetry</h2>
@@ -785,7 +741,7 @@ export function DashboardPage({
               <Activity className="w-4 h-4 text-[#10B981]" />
             </div>
             <LatencyBarChart tests={results} />
-          </motion.div>
+          </TiltCard3D>
         </section>
 
         {/* ═════════════════════════════════════════════════════════════
@@ -793,42 +749,38 @@ export function DashboardPage({
            ═════════════════════════════════════════════════════════════ */}
         <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Workstream B: PII Shield Telemetry */}
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="relative group perspective-[1200px] bg-[#041028]/65 backdrop-blur-xl border border-cyan-400/20 rounded-2xl transform-gpu transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] hover:-translate-y-2 hover:scale-[1.015] hover:border-cyan-300/65 hover:shadow-[0_24px_60px_rgba(0,229,255,0.22)] p-6"
-          >
-            <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-[#00E5FF]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none rounded-xl"></div>
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <div className="text-[10px] font-mono text-[#00E5FF] uppercase font-bold tracking-wider">
-                  Workstream B / Privacy Guardrails
-                </div>
-                <h2 className="text-lg font-bold text-white font-['Space_Grotesk']">
-                  Two-Sided PII Laser Tunnel Telemetry
-                </h2>
-              </div>
-              <span className="px-2.5 py-1 rounded-full text-xs font-mono font-bold bg-[#10B981]/15 text-[#10B981] border border-[#10B981]/30">
-                0 Unredacted Leaks
-              </span>
-            </div>
-
-            <div className="space-y-3 mb-4">
-              {piiTelemetry.map((item) => (
-                <div
-                  key={item.token}
-                  className="flex items-center justify-between p-3 rounded-xl bg-[#021233] border border-[#00E5FF]/20 text-xs font-mono"
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="text-[#FFEE55] font-bold">{item.token}</span>
-                    <span className="text-[#7595b4] text-[11px]">({item.type})</span>
+          <TiltCard3D className="p-6 flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <div className="text-[10px] font-mono text-[#00E5FF] uppercase font-bold tracking-wider">
+                    Workstream B / Privacy Guardrails
                   </div>
-                  <span className="text-[#10B981] font-bold text-[10px] bg-[#10B981]/10 px-2 py-0.5 rounded border border-[#10B981]/30">
-                    {item.status}
-                  </span>
+                  <h2 className="text-lg font-bold text-white font-['Space_Grotesk']">
+                    Two-Sided PII Laser Tunnel Telemetry
+                  </h2>
                 </div>
-              ))}
+                <span className="px-2.5 py-1 rounded-full text-xs font-mono font-bold bg-[#10B981]/15 text-[#10B981] border border-[#10B981]/30">
+                  0 Unredacted Leaks
+                </span>
+              </div>
+
+              <div className="space-y-3 mb-4">
+                {piiTelemetry.map((item) => (
+                  <div
+                    key={item.token}
+                    className="flex items-center justify-between p-3 rounded-xl bg-[#021233] border border-[#00E5FF]/20 text-xs font-mono"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="text-[#FFEE55] font-bold">{item.token}</span>
+                      <span className="text-[#7595b4] text-[11px]">({item.type})</span>
+                    </div>
+                    <span className="text-[#10B981] font-bold text-[10px] bg-[#10B981]/10 px-2 py-0.5 rounded border border-[#10B981]/30">
+                      {item.status}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
 
             <div className="grid grid-cols-3 gap-3 p-3 rounded-xl bg-[#021233] border border-[#00E5FF]/20 text-center font-mono text-xs">
@@ -845,16 +797,10 @@ export function DashboardPage({
                 <span className="text-[#FFEE55] font-bold text-sm">0.8%</span>
               </div>
             </div>
-          </motion.div>
+          </TiltCard3D>
 
           {/* Workstream C: Regulatory Compliance Matrix */}
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.25 }}
-            className="relative group perspective-[1200px] bg-[#041028]/65 backdrop-blur-xl border border-cyan-400/20 rounded-2xl transform-gpu transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] hover:-translate-y-2 hover:scale-[1.015] hover:border-cyan-300/65 hover:shadow-[0_24px_60px_rgba(0,229,255,0.22)] p-6 flex flex-col justify-between"
-          >
-            <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-[#00E5FF]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none rounded-xl"></div>
+          <TiltCard3D className="p-6 flex flex-col justify-between">
             <div>
               <div className="flex items-center justify-between mb-4">
                 <div>
@@ -907,11 +853,11 @@ export function DashboardPage({
             <div className="mt-4 pt-3 border-t border-[#00E5FF]/20 text-[10px] font-mono text-[#7595b4]">
               ⚖️ Technical readiness evidence supporting risk classification. Does not substitute for legal counsel.
             </div>
-          </motion.div>
+          </TiltCard3D>
         </section>
 
         {/* ═════════════════════════════════════════════════════════════
-           BOTTOM: SCROLLABLE ADVERSARIAL TEST EVIDENCE (TEST-01 to TEST-06)
+           BOTTOM: SCROLLABLE 3D TILT ADVERSARIAL TEST EVIDENCE (TEST-01 to TEST-06)
            ═════════════════════════════════════════════════════════════ */}
         <section className="space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -928,8 +874,9 @@ export function DashboardPage({
             <div className="flex items-center gap-2">
               <div className="flex bg-[#021233] p-1 rounded-lg border border-[#00E5FF]/30 text-xs font-mono">
                 <button
+                  type="button"
                   onClick={() => setFilter('all')}
-                  className={`px-3 py-1 rounded transition-all ${
+                  className={`px-3 py-1 rounded transition-all cursor-pointer ${
                     filter === 'all'
                       ? 'bg-[#00E5FF] text-[#01091D] font-bold shadow-[0_0_10px_rgba(0,229,255,0.4)]'
                       : 'text-[#83a2c1] hover:text-white'
@@ -938,8 +885,9 @@ export function DashboardPage({
                   All ({total})
                 </button>
                 <button
+                  type="button"
                   onClick={() => setFilter('passed')}
-                  className={`px-3 py-1 rounded transition-all ${
+                  className={`px-3 py-1 rounded transition-all cursor-pointer ${
                     filter === 'passed'
                       ? 'bg-[#10B981] text-[#01091D] font-bold shadow-[0_0_10px_rgba(16,185,129,0.4)]'
                       : 'text-[#83a2c1] hover:text-white'
@@ -948,8 +896,9 @@ export function DashboardPage({
                   Passed ({passedCount})
                 </button>
                 <button
+                  type="button"
                   onClick={() => setFilter('failed')}
-                  className={`px-3 py-1 rounded transition-all ${
+                  className={`px-3 py-1 rounded transition-all cursor-pointer ${
                     filter === 'failed'
                       ? 'bg-[#EF4444] text-white font-bold shadow-[0_0_10px_rgba(239,68,68,0.4)]'
                       : 'text-[#83a2c1] hover:text-white'
@@ -973,22 +922,18 @@ export function DashboardPage({
             </div>
           </div>
 
-          {/* Cards List */}
+          {/* Cards List: Each card inside <TiltCard3D> */}
           <div className="space-y-4">
-            {filteredTests.map((t, idx) => {
+            {filteredTests.map((t) => {
               const isPass = t.passed !== false;
 
               return (
-                <motion.div
+                <TiltCard3D
                   key={t.id}
-                  initial={{ opacity: 0, y: 25 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4, delay: idx * 0.06 }}
-                  className={`relative group perspective-[1200px] bg-[#041028]/65 backdrop-blur-xl border border-cyan-400/20 rounded-2xl transform-gpu transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] hover:-translate-y-2 hover:scale-[1.012] hover:border-cyan-300/65 hover:shadow-[0_24px_60px_rgba(0,229,255,0.22)] p-5 md:p-6 ${
+                  className={`p-5 md:p-6 ${
                     isPass ? 'border-cyan-400/20' : 'border-red-400/35'
                   }`}
                 >
-                  <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-[#00E5FF]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none rounded-xl"></div>
                   {/* Card Header */}
                   <div className="flex flex-wrap items-center justify-between gap-2 mb-4 pb-3 border-b border-[#00E5FF]/15">
                     <div className="flex items-center gap-3">
@@ -1070,7 +1015,7 @@ export function DashboardPage({
                       ))}
                     </div>
                   )}
-                </motion.div>
+                </TiltCard3D>
               );
             })}
 
@@ -1083,9 +1028,9 @@ export function DashboardPage({
         </section>
       </main>
 
-      {/* ═════════════════════════════════════════════════════════════════
-         PERSISTENT FLOATING STICKY "← Back to Home" BUTTON
-         ═════════════════════════════════════════════════════════════════ */}
+      {/* ═════════════════════════════════════════════════════════════
+         PERSISTENT FLOATING STICKY "← Back to Evaluation Panel" BUTTON
+         ═════════════════════════════════════════════════════════════ */}
       <div className="fixed bottom-6 right-6 z-50">
         <button
           type="button"
@@ -1096,7 +1041,7 @@ export function DashboardPage({
           className="flex items-center gap-2 bg-[#020b1e]/90 hover:bg-[#00E5FF] text-white hover:text-[#01091D] border border-cyan-400/50 px-5 py-3 rounded-full font-mono text-xs font-bold tracking-wider shadow-[0_10px_35px_rgba(0,229,255,0.4)] backdrop-blur-xl transition-all duration-300 hover:scale-105 cursor-pointer"
         >
           <ArrowUp className="w-4 h-4" />
-          <span>↑ Back to Evaluation / Top</span>
+          <span>↑ Back to Evaluation Panel</span>
         </button>
       </div>
     </div>

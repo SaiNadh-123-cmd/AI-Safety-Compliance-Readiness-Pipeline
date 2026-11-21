@@ -11,7 +11,6 @@ import { exportExecutivePdf } from './utils/exportExecutivePdf';
 import { EvaluationPanel } from './components/EvaluationPanel';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { DashboardPage } from './components/DashboardPage';
-import { createRealisticFallbackData } from './utils/fallbackData';
 import type { EvaluationRun, EvaluateResult } from './services/api';
 
 type Finding = { id: string; title: string; prompt: string; severity: 'HIGH' | 'MODERATE' | 'LOW'; cause: string; score: number };
@@ -127,9 +126,8 @@ export function App() {
   const [toggles, setToggles] = useState({ input: true, output: true, raw: false });
   const [activeCompliance, setActiveCompliance] = useState('GOVERN');
   const [dossier, setDossier] = useState(false);
-  const [dashboardData, setDashboardData] = useState<EvaluationRun | null>(null);
-  const defaultFallbackData = useMemo(() => createRealisticFallbackData(), []);
-  const activeReportData = dashboardData || defaultFallbackData;
+  const [evaluationData, setEvaluationData] = useState<any>(null);
+  const [hasRunEvaluation, setHasRunEvaluation] = useState(false);
   const heroRef = useRef<HTMLElement>(null);
   const domeRef = useRef<HTMLElement>(null);
   const evaluationRef = useRef<HTMLDivElement>(null);
@@ -273,7 +271,9 @@ export function App() {
   /* ──────── DashboardPage download handlers ──────── */
   const handleDownloadPdf = () => {
     try {
-      exportExecutivePdf(activeReportData);
+      if (evaluationData) {
+        exportExecutivePdf(evaluationData);
+      }
     } catch (err) {
       console.error('PDF generation failed:', err);
       alert('Failed to generate PDF report.');
@@ -282,11 +282,12 @@ export function App() {
 
   const handleDownloadJson = () => {
     try {
-      const blob = new Blob([JSON.stringify(activeReportData, null, 2)], { type: 'application/json' });
+      const dataToExport = evaluationData || {};
+      const blob = new Blob([JSON.stringify(dataToExport, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `og-safety-${String(activeReportData.runId ?? 'report')}.json`;
+      a.download = `og-safety-${String(dataToExport.runId ?? 'report')}.json`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -299,7 +300,8 @@ export function App() {
 
   const handleDownloadCsv = () => {
     try {
-      const results: EvaluateResult[] = Array.isArray(activeReportData?.results) ? activeReportData.results : [];
+      const dataToExport = evaluationData || {};
+      const results: EvaluateResult[] = Array.isArray(dataToExport?.results) ? dataToExport.results : [];
       const header = 'id,category,description,prompt,target,passed,severity,score,output,timestamp\n';
       const rows = results.map((r) =>
         `"${String(r?.id ?? '')}","${String(r?.category ?? '')}","${String(r?.description ?? '')}","${String(r?.prompt ?? '').replace(/"/g, '""')}","${String(r?.target ?? '')}",${r.passed !== false},"${String(r?.severity ?? '')}",${r.score ?? 0},"${String(r?.output ?? '').replace(/"/g, '""')}","${String(r?.timestamp ?? '')}"`
@@ -308,7 +310,7 @@ export function App() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `og-safety-${String(activeReportData.runId ?? 'report')}.csv`;
+      a.download = `og-safety-${String(dataToExport.runId ?? 'report')}.csv`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -321,16 +323,17 @@ export function App() {
 
   const handleDownloadMd = () => {
     try {
-      const results: EvaluateResult[] = Array.isArray(activeReportData?.results) ? activeReportData.results : [];
+      const dataToExport = evaluationData || {};
+      const results: EvaluateResult[] = Array.isArray(dataToExport?.results) ? dataToExport.results : [];
       const passRate = results.length > 0 ? ((results.filter((r) => r.passed !== false).length / results.length) * 100).toFixed(1) : '0.0';
       const md = [
         '# O&G AI Safety & Compliance Report',
         '',
-        `**Run ID:** ${String(activeReportData.runId ?? '')}`,
-        `**Model:** ${String(activeReportData.model ?? '')}`,
-        `**Target:** ${String(activeReportData.target ?? '')}`,
-        `**Generated:** ${String(activeReportData.generatedAt ?? '')}`,
-        `**Mode:** ${String(activeReportData.mode ?? '')}`,
+        `**Run ID:** ${String(dataToExport.runId ?? '')}`,
+        `**Model:** ${String(dataToExport.model ?? '')}`,
+        `**Target:** ${String(dataToExport.target ?? '')}`,
+        `**Generated:** ${String(dataToExport.generatedAt ?? '')}`,
+        `**Mode:** ${String(dataToExport.mode ?? '')}`,
         '',
         '## Summary',
         `- Total Probes: ${results.length}`,
@@ -354,7 +357,7 @@ export function App() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `og-safety-${String(activeReportData.runId ?? 'report')}.md`;
+      a.download = `og-safety-${String(dataToExport.runId ?? 'report')}.md`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -378,7 +381,9 @@ export function App() {
             <button onClick={() => scrollTo(heroRef)}>HOME</button>
             <button onClick={() => scrollTo(domeRef)}>VIRTUAL DEFENSE DOME</button>
             <button onClick={() => evaluationRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>RUN EVALUATION</button>
-            <button onClick={() => dashboardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>SAFETY DASHBOARD</button>
+            {hasRunEvaluation && (
+              <button onClick={() => dashboardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>SAFETY DASHBOARD</button>
+            )}
             <button onClick={() => scrollTo(chatRef)}>PII LASER TUNNEL</button>
             <button onClick={() => scrollTo(complianceRef)}>COMPLIANCE ARENA</button>
             <button onClick={() => setDossier(true)}>EXECUTIVE DOSSIER</button>
@@ -396,43 +401,58 @@ export function App() {
 
           <div ref={evaluationRef}>
             <EvaluationPanel
+              hasRunEvaluation={hasRunEvaluation}
               onEvaluationComplete={(data) => {
-                setDashboardData(data);
+                setEvaluationData(data);
+                setHasRunEvaluation(true);
                 setTimeout(() => {
                   dashboardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }, 120);
+                }, 150);
               }}
               onScrollToDashboard={() => {
-                dashboardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                if (hasRunEvaluation && dashboardRef.current) {
+                  dashboardRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
               }}
             />
           </div>
 
           {/* ═════════════════════════════════════════════════════════════
-             WORKSTREAM A / 3D INTERACTIVE SAFETY DASHBOARD (WITH WAVE BG)
+             WORKSTREAM A / FULL-BLEED SEPARATE ATMOSPHERIC DASHBOARD
+             (Hidden until user clicks 'Run Safety Evaluation'!)
              ═════════════════════════════════════════════════════════════ */}
-          <section
-            ref={dashboardRef}
-            id="safety-dashboard"
-            className="relative mt-8 mb-20 rounded-3xl overflow-hidden border border-cyan-400/25 shadow-[0_30px_90px_rgba(0,0,0,0.65)] max-w-7xl mx-auto px-2 sm:px-4"
-            style={{
-              backgroundImage: `linear-gradient(180deg, rgba(2, 8, 23, 0.78) 0%, rgba(2, 12, 34, 0.88) 55%, rgba(2, 8, 23, 0.95) 100%), url('/Dashboard-bg.webp'), url('/dashboard-bg.webp')`,
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
-              backgroundAttachment: 'local'
-            }}
-          >
-            <DashboardPage
-              data={activeReportData}
-              onBackHome={() => {
-                evaluationRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          {hasRunEvaluation && evaluationData && (
+            <section
+              ref={dashboardRef}
+              id="safety-dashboard"
+              className="relative w-screen left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] mt-20 py-20 px-4 sm:px-8 lg:px-12 overflow-hidden border-t border-cyan-400/30 animate-fade-in"
+              style={{
+                backgroundImage: `linear-gradient(180deg, rgba(1, 9, 29, 0.96) 0%, rgba(2, 12, 34, 0.72) 18%, rgba(2, 12, 34, 0.78) 82%, rgba(1, 9, 29, 0.98) 100%), url('/dashboard-bg.webp'), url('/Dashboard-bg.webp')`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                backgroundAttachment: 'fixed',
               }}
-              onDownloadPdf={handleDownloadPdf}
-              onDownloadJson={handleDownloadJson}
-              onDownloadCsv={handleDownloadCsv}
-              onDownloadMd={handleDownloadMd}
-            />
-          </section>
+            >
+              {/* Subtle glowing top divider beam */}
+              <div className="pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 h-[2px] w-2/3 bg-gradient-to-r from-transparent via-cyan-400 to-transparent shadow-[0_0_25px_#00E5FF]" />
+
+              <div className="relative z-10 max-w-7xl mx-auto space-y-8">
+                <DashboardPage
+                  data={evaluationData}
+                  onBackHome={() => {
+                    evaluationRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  }}
+                  onRetryEvaluation={() => {
+                    evaluationRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  }}
+                  onDownloadPdf={handleDownloadPdf}
+                  onDownloadJson={handleDownloadJson}
+                  onDownloadCsv={handleDownloadCsv}
+                  onDownloadMd={handleDownloadMd}
+                />
+              </div>
+            </section>
+          )}
 
         <section className="tunnel-section section-shell" ref={chatRef}><SectionIntro number="02" label="WORKSTREAM B / PRIVACY GUARDRAILS" title={<>THE TWO-SIDED<br /><span>PII LASER TUNNEL.</span></>} text="Watch synthetic payloads get identified, masked, assessed, and returned through a visible protection path." /><div className="chip-row">{piiChips.map(([label, text]) => <button key={label} onClick={() => sendMessage(text)}><span className={label === 'JAILBREAK' ? 'threat' : ''}>{label}</span> {text}</button>)}</div><PipelineStrip pipeline={pipeline} /><div className={`tunnel ${tunnelLive ? 'live' : ''}`}><div className="tunnel-chamber"><div className="chamber-head"><div><span>01 / SHIELD CHAMBER</span><b>INPUT PRE-PROCESSOR</b></div><LockKeyhole size={22} /></div><div className="chamber-body"><div className="payload">{pipeline ? (pipeline.stage === 1 ? highlightPII(pipeline.raw).map((part, i) => (part.hit ? <mark key={i}>{part.v}</mark> : <span key={i}>{part.v}</span>)) : pipeline.masked.split(/(\[[A-Z_]+\])/g).map((tok, i) => (/^\[[A-Z_]+\]$/.test(tok) ? <mark key={i}>{tok}</mark> : <span key={i}>{tok}</span>))) : <>My phone number is <mark>[PHONE_NUMBER]</mark></>}</div><small>Presidio · spaCy · Custom regex{pipeline ? ` · Stage ${pipeline.stage} of 4` : ''}</small><div className="entity-row">{(pipeline && pipeline.entities.length > 0 ? pipeline.entities : ['PHONE_NUMBER', 'CREDIT_CARD']).map((e) => <b key={e}>{e}</b>)}</div></div></div><div className="beam beam-one" /><div className="chat-chamber"><div className="chamber-head"><div><span>02 / MODEL CORE</span><b>LIVE ASSISTANT</b></div><div className="online"><span /> ONLINE</div></div><div className="chat-log">{chat.map((message, index) => <div className={`chat-line ${message.role}`} key={`${message.text}-${index}`}><span>{message.role === 'user' ? 'OP' : <ShieldCheck size={13} />}</span><p>{message.text}{message.badge && <em style={{ display: 'block', marginTop: '7px', fontFamily: 'monospace', fontSize: '10px', letterSpacing: '0.05em', fontStyle: 'normal', color: message.badge.includes('BLOCKED') ? '#F59E0B' : '#19dda2' }}>{message.badge}</em>}</p></div>)}</div><div className="chat-input"><input value={draft} onChange={(e) => setDraft(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && sendMessage()} placeholder="Type a synthetic test prompt..." className="bg-[#021233] text-white placeholder-slate-400 border border-[#00E5FF]/30 rounded-md px-3 py-2 focus:outline-none focus:border-[#00E5FF]/50 w-full" /><button onClick={() => sendMessage()}><Send size={15} /></button></div><div className="chat-toggles"><Toggle label="Input guardrail" active={toggles.input} onClick={() => setToggles({ ...toggles, input: !toggles.input })} /><Toggle label="Output guardrail" active={toggles.output} onClick={() => setToggles({ ...toggles, output: !toggles.output })} /><Toggle label="Raw peek" active={toggles.raw} onClick={() => setToggles({ ...toggles, raw: !toggles.raw })} /></div></div><div className="beam beam-two" /><div className="tunnel-chamber"><div className="chamber-head"><div><span>03 / SHIELD CHAMBER</span><b>OUTPUT POST-PROCESSOR</b></div><Shield size={22} /></div><div className="chamber-body"><div className="payload">{pipeline && pipeline.stage >= 4 ? <>{pipeline.verdict === 'BLOCKED' ? 'Jailbreak refused — guardrail held.' : 'Sanitized response delivered.'}<mark className="cyan-mark"> {pipeline.source}</mark></> : <>Reach Alex at <mark className="cyan-mark">[EMAIL_ADDRESS]</mark></>}</div><small>Response redacted before delivery{pipeline && pipeline.stage >= 4 ? ` · ${pipeline.latencyMs}ms · ${pipeline.maskedCount} entities masked · ${pipeline.verdict}` : ''}</small><div className="quality-meters"><span>FALSE POSITIVE <b>1.3%</b></span><i><em style={{ width: '14%' }} /></i><span>FALSE NEGATIVE <b>0.8%</b></span><i><em style={{ width: '9%' }} /></i><span>LOCALE COVERAGE <b>5 / 5</b></span></div></div></div><div className="beam beam-two" /></div></section>
 

@@ -58,6 +58,14 @@ export interface EvaluationRun {
     pdf: string;
     csv: string;
   };
+  isLive?: boolean;
+  engineSource?: string;
+  serverTimestamp?: string;
+  modelUsed?: string;
+  avgLatencyMs?: number;
+  debugError?: string;
+  error?: string;
+  rawPayload?: any;
 }
 
 export interface BackendStatus {

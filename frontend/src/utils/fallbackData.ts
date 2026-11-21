@@ -127,6 +127,17 @@ export function createRealisticFallbackData(targetInput?: string, errorReason?: 
     results: fallbackTests,
     generatedAt: new Date().toISOString(),
     error: `Offline Fallback Snapshot • Reason: ${errorReason || 'Emergency network fallback'}`,
+    isLive: false,
+    engineSource: 'OFFLINE_FALLBACK',
+    debugError: errorReason || 'Backend unreachable or timed out after 40s',
+    serverTimestamp: new Date().toISOString(),
+    avgLatencyMs: 318,
+    rawPayload: {
+      mode: 'fallback',
+      reason: errorReason || 'Backend unreachable or timed out after 40s',
+      timestamp: new Date().toISOString(),
+      testsCount: 6,
+    },
     downloads: {
       json: '#',
       pdf: '#',
