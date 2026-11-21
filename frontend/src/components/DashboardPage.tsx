@@ -24,7 +24,7 @@ import {
   FileText,
   Files,
   FileCode,
-  ArrowLeft,
+  ArrowUp,
   Search,
   Activity,
   Layers,
@@ -32,6 +32,7 @@ import {
   Zap,
 } from 'lucide-react';
 import type { EvaluationRun, EvaluateResult } from '../services/api';
+import { exportExecutivePdf } from '../utils/exportExecutivePdf';
 
 /* ═════════════════════════════════════════════════════════════════════
    CRASH-PROOF HELPERS
@@ -496,53 +497,91 @@ export function DashboardPage({
     { control: 'EU AI ACT ART. 15', topic: 'Technical Robustness & Cyber Safety', status: 'VERIFIED', action: 'Defense Dome portals' },
   ];
 
+  const [pdfStatus, setPdfStatus] = useState<'idle' | 'generating' | 'downloaded'>('idle');
+
+  const handlePdfDownload = () => {
+    if (pdfStatus === 'generating') return;
+    setPdfStatus('generating');
+    try {
+      if (onDownloadPdf) {
+        onDownloadPdf();
+      } else {
+        exportExecutivePdf(data);
+      }
+      setPdfStatus('downloaded');
+    } catch (err) {
+      console.error('PDF generation error:', err);
+      setPdfStatus('idle');
+    }
+    setTimeout(() => setPdfStatus('idle'), 2500);
+  };
+
   return (
-    <div className="min-h-screen bg-[#01091D] text-[#eef7ff] pb-24 selection:bg-[#00E5FF] selection:text-[#01091D]">
+    <div className="relative w-full text-[#eef7ff] pb-16 selection:bg-[#00E5FF] selection:text-[#01091D] bg-transparent">
       {/* ═════════════════════════════════════════════════════════════════
          TOP STICKY EXPORT & NAVIGATION BAR
          ═════════════════════════════════════════════════════════════════ */}
-      <header className="sticky top-0 z-50 bg-[#01091D]/90 backdrop-blur-xl border-b border-[#00E5FF]/25 px-4 md:px-8 py-3.5 shadow-[0_10px_30px_rgba(0,0,0,0.5)]">
+      <header className="sticky top-0 z-40 bg-[#020b1e]/85 backdrop-blur-xl border-b border-cyan-400/25 px-4 md:px-8 py-3.5 shadow-[0_10px_30px_rgba(0,0,0,0.5)]">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-3">
-          {/* Back to Home Button + Endpoint Badge */}
+          {/* Back to Evaluation Button + Endpoint Badge */}
           <div className="flex items-center gap-3 w-full md:w-auto justify-between md:justify-start">
             <button
-              onClick={onBackHome}
-              className="flex items-center gap-2 bg-[#021233] border border-[#00E5FF]/40 text-[#00E5FF] hover:bg-[#00E5FF] hover:text-[#01091D] rounded-lg px-3.5 py-2 text-xs font-mono font-bold tracking-wider transition-all duration-300 shadow-[0_0_15px_rgba(0,229,255,0.15)]"
+              onClick={() => {
+                document.getElementById('evaluation-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                onBackHome?.();
+              }}
+              className="flex items-center gap-2 bg-[#021233]/90 border border-cyan-400/40 text-[#00E5FF] hover:bg-[#00E5FF] hover:text-[#01091D] rounded-lg px-3.5 py-2 text-xs font-mono font-bold tracking-wider transition-all duration-300 shadow-[0_0_15px_rgba(0,229,255,0.15)] cursor-pointer"
             >
-              <ArrowLeft className="w-4 h-4" />
-              <span>← Back to Home / Evaluate Another Chatbot</span>
+              <ArrowUp className="w-4 h-4" />
+              <span>↑ Back to Evaluation / Top</span>
             </button>
-            <span className="px-2.5 py-1 rounded text-[11px] font-mono font-bold bg-[#10B981]/15 text-[#10B981] border border-[#10B981]/40">
-              🟢 LIVE GROQ ENGINE • {safeText(data.model || 'openai/gpt-oss-20b')}
-            </span>
+
+            {data.error && data.error.includes('Fallback') ? (
+              <span className="px-2.5 py-1 rounded text-[11px] font-mono font-bold bg-[#F59E0B]/20 text-[#F59E0B] border border-[#F59E0B]/50 flex items-center gap-1.5 shadow-[0_0_12px_rgba(245,158,11,0.25)]">
+                <span className="w-2 h-2 rounded-full bg-[#F59E0B] animate-pulse" />
+                <span>{safeText(data.error)}</span>
+              </span>
+            ) : (
+              <span className="px-2.5 py-1 rounded text-[11px] font-mono font-bold bg-[#10B981]/20 text-[#10B981] border border-[#10B981]/50 flex items-center gap-1.5 shadow-[0_0_12px_rgba(16,185,129,0.25)]">
+                <span className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse" />
+                <span>🟢 LIVE GROQ EVALUATION • {safeText(data.model || 'openai/gpt-oss-20b')}</span>
+              </span>
+            )}
           </div>
 
           {/* Export action buttons */}
           <div className="flex items-center gap-2 overflow-x-auto w-full md:w-auto pb-1 md:pb-0">
             <button
-              onClick={onDownloadPdf}
-              className="flex items-center gap-1.5 bg-[#00E5FF] text-[#01091D] hover:bg-[#FFEE55] rounded-lg px-3 py-1.5 text-xs font-mono font-bold tracking-wider transition-all duration-200 shadow-[0_0_15px_rgba(0,229,255,0.3)] whitespace-nowrap"
+              type="button"
+              onClick={handlePdfDownload}
+              className="flex items-center gap-1.5 bg-[#00E5FF] text-[#01091D] hover:bg-[#FFEE55] rounded-lg px-3.5 py-1.5 text-xs font-mono font-bold tracking-wider transition-all duration-200 shadow-[0_0_20px_rgba(0,229,255,0.4)] whitespace-nowrap cursor-pointer hover:scale-105"
             >
               <FileText className="w-3.5 h-3.5" />
-              <span>Download PDF</span>
+              <span>
+                {pdfStatus === 'generating'
+                  ? 'Generating PDF...'
+                  : pdfStatus === 'downloaded'
+                  ? '✓ PDF Downloaded!'
+                  : 'Download Executive PDF'}
+              </span>
             </button>
             <button
               onClick={onDownloadMd}
-              className="flex items-center gap-1.5 bg-[#021233] border border-[#00E5FF]/30 hover:border-[#00E5FF] text-white hover:text-[#00E5FF] rounded-lg px-3 py-1.5 text-xs font-mono font-semibold transition-all duration-200 whitespace-nowrap"
+              className="flex items-center gap-1.5 bg-[#021233]/90 border border-cyan-400/30 hover:border-cyan-400 text-white hover:text-[#00E5FF] rounded-lg px-3 py-1.5 text-xs font-mono font-semibold transition-all duration-200 whitespace-nowrap cursor-pointer"
             >
               <FileCode className="w-3.5 h-3.5" />
               <span>DOC / MD</span>
             </button>
             <button
               onClick={onDownloadCsv}
-              className="flex items-center gap-1.5 bg-[#021233] border border-[#00E5FF]/30 hover:border-[#00E5FF] text-white hover:text-[#00E5FF] rounded-lg px-3 py-1.5 text-xs font-mono font-semibold transition-all duration-200 whitespace-nowrap"
+              className="flex items-center gap-1.5 bg-[#021233]/90 border border-cyan-400/30 hover:border-cyan-400 text-white hover:text-[#00E5FF] rounded-lg px-3 py-1.5 text-xs font-mono font-semibold transition-all duration-200 whitespace-nowrap cursor-pointer"
             >
               <Files className="w-3.5 h-3.5" />
               <span>CSV</span>
             </button>
             <button
               onClick={onDownloadJson}
-              className="flex items-center gap-1.5 bg-[#021233] border border-[#00E5FF]/30 hover:border-[#00E5FF] text-white hover:text-[#00E5FF] rounded-lg px-3 py-1.5 text-xs font-mono font-semibold transition-all duration-200 whitespace-nowrap"
+              className="flex items-center gap-1.5 bg-[#021233]/90 border border-cyan-400/30 hover:border-cyan-400 text-white hover:text-[#00E5FF] rounded-lg px-3 py-1.5 text-xs font-mono font-semibold transition-all duration-200 whitespace-nowrap cursor-pointer"
             >
               <span>{'{ } JSON'}</span>
             </button>
@@ -593,7 +632,7 @@ export function DashboardPage({
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.45, delay: 0.05 }}
-            className="relative group perspective-[1200px] transform-gpu transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] hover:-translate-y-3 hover:shadow-[0_30px_60px_rgba(0,229,255,0.15)] hover:border-[#00E5FF]/50 hover:z-10 cyber-card rounded-2xl bg-[#041230]/90 border border-[#00E5FF]/30 p-5 shadow-[0_10px_30px_rgba(0,0,0,0.4)]"
+            className="relative group perspective-[1200px] bg-[#041028]/65 backdrop-blur-xl border border-cyan-400/20 rounded-2xl transform-gpu transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] hover:-translate-y-2 hover:scale-[1.015] hover:border-cyan-300/65 hover:shadow-[0_24px_60px_rgba(0,229,255,0.22)] p-5"
           >
             <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-[#00E5FF]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none rounded-xl"></div>
             <div className="flex items-center justify-between mb-2">
@@ -617,7 +656,7 @@ export function DashboardPage({
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.45, delay: 0.12 }}
-            className="relative group perspective-[1200px] transform-gpu transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] hover:-translate-y-3 hover:shadow-[0_30px_60px_rgba(0,229,255,0.15)] hover:border-[#00E5FF]/50 hover:z-10 cyber-card rounded-2xl bg-[#041230]/90 border border-[#10B981]/30 p-5 shadow-[0_10px_30px_rgba(0,0,0,0.4)]"
+            className="relative group perspective-[1200px] bg-[#041028]/65 backdrop-blur-xl border border-emerald-400/25 rounded-2xl transform-gpu transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] hover:-translate-y-2 hover:scale-[1.015] hover:border-emerald-300/65 hover:shadow-[0_24px_60px_rgba(16,185,129,0.22)] p-5"
           >
             <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-[#00E5FF]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none rounded-xl"></div>
             <div className="flex items-center justify-between mb-2">
@@ -642,7 +681,7 @@ export function DashboardPage({
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.45, delay: 0.19 }}
-            className="relative group perspective-[1200px] transform-gpu transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] hover:-translate-y-3 hover:shadow-[0_30px_60px_rgba(0,229,255,0.15)] hover:border-[#00E5FF]/50 hover:z-10 cyber-card rounded-2xl bg-[#041230]/90 border border-[#EF4444]/30 p-5 shadow-[0_10px_30px_rgba(0,0,0,0.4)]"
+            className="relative group perspective-[1200px] bg-[#041028]/65 backdrop-blur-xl border border-red-400/25 rounded-2xl transform-gpu transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] hover:-translate-y-2 hover:scale-[1.015] hover:border-red-300/65 hover:shadow-[0_24px_60px_rgba(239,68,68,0.22)] p-5"
           >
             <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-[#00E5FF]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none rounded-xl"></div>
             <div className="flex items-center justify-between mb-2">
@@ -669,7 +708,7 @@ export function DashboardPage({
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.45, delay: 0.26 }}
-            className="relative group perspective-[1200px] transform-gpu transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] hover:-translate-y-3 hover:shadow-[0_30px_60px_rgba(0,229,255,0.15)] hover:border-[#00E5FF]/50 hover:z-10 cyber-card rounded-2xl bg-[#041230]/90 border border-[#FFEE55]/30 p-5 shadow-[0_10px_30px_rgba(0,0,0,0.4)]"
+            className="relative group perspective-[1200px] bg-[#041028]/65 backdrop-blur-xl border border-amber-400/25 rounded-2xl transform-gpu transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] hover:-translate-y-2 hover:scale-[1.015] hover:border-amber-300/65 hover:shadow-[0_24px_60px_rgba(255,238,85,0.22)] p-5"
           >
             <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-[#00E5FF]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none rounded-xl"></div>
             <div className="flex items-center justify-between mb-2">
@@ -699,7 +738,7 @@ export function DashboardPage({
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.15 }}
-            className="relative group perspective-[1200px] transform-gpu transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] hover:-translate-y-3 hover:shadow-[0_30px_60px_rgba(0,229,255,0.15)] hover:border-[#00E5FF]/50 hover:z-10 cyber-card rounded-2xl bg-[#041230]/95 border border-[#00E5FF]/30 p-6 flex flex-col justify-between"
+            className="relative group perspective-[1200px] bg-[#041028]/65 backdrop-blur-xl border border-cyan-400/20 rounded-2xl transform-gpu transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] hover:-translate-y-2 hover:scale-[1.015] hover:border-cyan-300/65 hover:shadow-[0_24px_60px_rgba(0,229,255,0.22)] p-6 flex flex-col justify-between"
           >
             <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-[#00E5FF]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none rounded-xl"></div>
             <div className="flex items-center justify-between mb-4">
@@ -717,7 +756,7 @@ export function DashboardPage({
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.22 }}
-            className="relative group perspective-[1200px] transform-gpu transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] hover:-translate-y-3 hover:shadow-[0_30px_60px_rgba(0,229,255,0.15)] hover:border-[#00E5FF]/50 hover:z-10 cyber-card rounded-2xl bg-[#041230]/95 border border-[#00E5FF]/30 p-6 flex flex-col justify-between"
+            className="relative group perspective-[1200px] bg-[#041028]/65 backdrop-blur-xl border border-cyan-400/20 rounded-2xl transform-gpu transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] hover:-translate-y-2 hover:scale-[1.015] hover:border-cyan-300/65 hover:shadow-[0_24px_60px_rgba(0,229,255,0.22)] p-6 flex flex-col justify-between"
           >
             <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-[#00E5FF]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none rounded-xl"></div>
             <div className="flex items-center justify-between mb-4">
@@ -735,7 +774,7 @@ export function DashboardPage({
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.29 }}
-            className="relative group perspective-[1200px] transform-gpu transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] hover:-translate-y-3 hover:shadow-[0_30px_60px_rgba(0,229,255,0.15)] hover:border-[#00E5FF]/50 hover:z-10 cyber-card rounded-2xl bg-[#041230]/95 border border-[#00E5FF]/30 p-6 flex flex-col justify-between"
+            className="relative group perspective-[1200px] bg-[#041028]/65 backdrop-blur-xl border border-cyan-400/20 rounded-2xl transform-gpu transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] hover:-translate-y-2 hover:scale-[1.015] hover:border-cyan-300/65 hover:shadow-[0_24px_60px_rgba(0,229,255,0.22)] p-6 flex flex-col justify-between"
           >
             <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-[#00E5FF]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none rounded-xl"></div>
             <div className="flex items-center justify-between mb-4">
@@ -758,7 +797,7 @@ export function DashboardPage({
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.2 }}
-            className="relative group perspective-[1200px] transform-gpu transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] hover:-translate-y-3 hover:shadow-[0_30px_60px_rgba(0,229,255,0.15)] hover:border-[#00E5FF]/50 hover:z-10 cyber-card rounded-2xl bg-[#041230]/95 border border-[#00E5FF]/30 p-6"
+            className="relative group perspective-[1200px] bg-[#041028]/65 backdrop-blur-xl border border-cyan-400/20 rounded-2xl transform-gpu transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] hover:-translate-y-2 hover:scale-[1.015] hover:border-cyan-300/65 hover:shadow-[0_24px_60px_rgba(0,229,255,0.22)] p-6"
           >
             <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-[#00E5FF]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none rounded-xl"></div>
             <div className="flex items-center justify-between mb-4">
@@ -813,7 +852,7 @@ export function DashboardPage({
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.25 }}
-            className="relative group perspective-[1200px] transform-gpu transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] hover:-translate-y-3 hover:shadow-[0_30px_60px_rgba(0,229,255,0.15)] hover:border-[#00E5FF]/50 hover:z-10 cyber-card rounded-2xl bg-[#041230]/95 border border-[#00E5FF]/30 p-6 flex flex-col justify-between"
+            className="relative group perspective-[1200px] bg-[#041028]/65 backdrop-blur-xl border border-cyan-400/20 rounded-2xl transform-gpu transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] hover:-translate-y-2 hover:scale-[1.015] hover:border-cyan-300/65 hover:shadow-[0_24px_60px_rgba(0,229,255,0.22)] p-6 flex flex-col justify-between"
           >
             <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-[#00E5FF]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none rounded-xl"></div>
             <div>
@@ -945,8 +984,8 @@ export function DashboardPage({
                   initial={{ opacity: 0, y: 25 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.4, delay: idx * 0.06 }}
-                  className={`relative group perspective-[1200px] transform-gpu transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] hover:-translate-y-3 hover:shadow-[0_30px_60px_rgba(0,229,255,0.15)] hover:border-[#00E5FF]/50 hover:z-10 cyber-card rounded-2xl bg-[#041230]/90 p-5 md:p-6 border transition-all duration-300 ${
-                    isPass ? 'border-[#00E5FF]/25 hover:border-[#10B981]/50' : 'border-[#EF4444]/40 hover:border-[#EF4444]'
+                  className={`relative group perspective-[1200px] bg-[#041028]/65 backdrop-blur-xl border border-cyan-400/20 rounded-2xl transform-gpu transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] hover:-translate-y-2 hover:scale-[1.012] hover:border-cyan-300/65 hover:shadow-[0_24px_60px_rgba(0,229,255,0.22)] p-5 md:p-6 ${
+                    isPass ? 'border-cyan-400/20' : 'border-red-400/35'
                   }`}
                 >
                   <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-[#00E5FF]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none rounded-xl"></div>
@@ -1049,11 +1088,15 @@ export function DashboardPage({
          ═════════════════════════════════════════════════════════════════ */}
       <div className="fixed bottom-6 right-6 z-50">
         <button
-          onClick={onBackHome}
-          className="flex items-center gap-2 bg-[#041230]/95 hover:bg-[#00E5FF] text-white hover:text-[#01091D] border border-[#00E5FF]/50 px-5 py-3 rounded-full font-mono text-xs font-bold tracking-wider shadow-[0_10px_35px_rgba(0,229,255,0.35)] transition-all duration-300 hover:scale-105"
+          type="button"
+          onClick={() => {
+            document.getElementById('evaluation-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            onBackHome?.();
+          }}
+          className="flex items-center gap-2 bg-[#020b1e]/90 hover:bg-[#00E5FF] text-white hover:text-[#01091D] border border-cyan-400/50 px-5 py-3 rounded-full font-mono text-xs font-bold tracking-wider shadow-[0_10px_35px_rgba(0,229,255,0.4)] backdrop-blur-xl transition-all duration-300 hover:scale-105 cursor-pointer"
         >
-          <ArrowLeft className="w-4 h-4" />
-          <span>← Back to Home / Evaluate Another Chatbot</span>
+          <ArrowUp className="w-4 h-4" />
+          <span>↑ Back to Evaluation / Top</span>
         </button>
       </div>
     </div>
